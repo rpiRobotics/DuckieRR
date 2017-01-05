@@ -1,0 +1,3 @@
+[submodule "camera/include/raspicam"]
+	path = camera/include/raspicam
+	url = https://github.com/cedricve/raspicam
