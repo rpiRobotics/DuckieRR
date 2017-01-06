@@ -72,10 +72,10 @@ sudo ldconfig
 # Make the source code
 # ------------------------
 cd $BASE_DIR
-#mkdir build
-#cd build
-#cmake ..
-#make 
-#sudo make install
+mkdir -p build
+cd build
+cmake ..
+make 
+sudo make install
 
 
