@@ -6,6 +6,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <raspicam/raspicam.h>
+//#include <RobotRaconteur.h> using namespace RobotRaconteur;
 using namespace std;
 
 int main ( int argc,char **argv ) {

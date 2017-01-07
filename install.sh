@@ -4,20 +4,14 @@ set -e
 set -x
 
 BASE_DIR=$(pwd)
-
-# ------------------------
-# Update Git Submodules
-# ------------------------
-# make sure we have cloned the full repo (including submodules)
-git submodule init
-git submodule update
-
+DEPEND_DIR="$BASE_DIR/dependencies"
 # ------------------------
 # Install Boost Libraries
 # ------------------------
 # requires gcc 4.8 ... We are just going to assume we have it
-BOOST_DIR="$BASE_DIR/boost_1_60_0"
+BOOST_DIR="$DEPEND_DIR/boost_1_60_0"
 if [ ! -d "$BOOST_DIR" ]; then
+	cd $DEPEND_DIR
 	# download boost
 	wget "http://sourceforge.net/projects/boost/files/boost/1.60.0/boost_1_60_0.tar.gz"
 	# untar
@@ -38,7 +32,7 @@ fi
 # Install RR Libraries
 # ------------------------
 # This is for the duckiebot... so we are going to assume these aren't installed.
-RR_DIR="$BASE_DIR/RobotRaconteur_0.8"
+RR_DIR="$DEPEND_DIR/RobotRaconteur_0.8"
 RR_CPP_DIR="$RR_DIR/RobotRaconteur-0.8.1-beta-CPP-SDK-gcc-linux-armhf-2016-07-18"
 
 if [ ! -d "$RR_CPP_DIR" ]; then
@@ -57,16 +51,22 @@ if [[ "$(python -c "import pkg_resources;print pkg_resources.get_distribution('R
 fi
 
 # ------------------------
-# Make raspicam code
+# Extract and Make raspicam code
 # ------------------------
-RAPSICAM_DIR="$BASE_DIR/camera/include/raspicam"
-cd $RAPSICAM_DIR
-mkdir -p build
-cd build 
-cmake ..
-make
-sudo make install
-sudo ldconfig
+RAPSICAM_DIR="$DEPEND_DIR/raspicam-0.1.3"
+if [ ! -d "$RASPICAM_DIR" ]; then
+	cd $DEPEND_DIR
+	# unzip the zip file
+	unzip "raspicam-0.1.3.zip"
+
+	cd $RAPSICAM_DIR
+	mkdir -p build
+	cd build 
+	cmake ..
+	make
+	sudo make install
+	sudo ldconfig
+fi
 
 # ------------------------
 # Make the source code
@@ -77,5 +77,3 @@ cd build
 cmake ..
 make 
 sudo make install
-
-

@@ -33,8 +33,13 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(RobotRaconteur REQUIRED)
 
+# Run RobotRaconteurGen to get the stubskell_files
+add_custom_target(stubskell 
+    COMMAND ${RobotRaconteur_GEN} --thunksource --lang=cpp ${CMAKE_CURRENT_SOURCE_DIR}/camera_service.robdef )
+
 # The executable and link libraries
 #add_executable (camera_interface camera_service_stubskel.cpp camera_interface.cpp)
 add_executable (camera_interface camera_interface.cpp)
+add_dependencies(camera_interface stubskell)
 
 target_link_libraries (camera_interface ${raspicam_LIBS} ${RobotRaconteur_LIBRARY} ${Boost_LIBRARIES} ${RobotRaconteur_EXTRA_LIBRARIES})
