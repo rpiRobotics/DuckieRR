@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from dagu_car.dagu_wheels_driver import DaguWheelsDriver
-
+import sys
 import argparse
 import numpy as np
 import socket
@@ -196,7 +196,7 @@ if __name__ == '__main__':
 
     # Create TCP Transport, register it, and start the server  
     t2 = RR.TcpTransport()
-    t2.EnableNodeAnnouce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
+    t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
             RR.IPNodeDiscoveryFlags_LINK_LOCAL |
             RR.IPNodeDiscoveryFlags_SITE_LOCAL)
 
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     RRN.RegisterServiceType(drive_servicedef)
 
     # Register the service
-    RRN.RegisterService("Duckiebot","Duckiebot_Interface/Duckiebot", driver_obj)
+    RRN.RegisterService("Duckiebot","Duckiebot_Interface.Duckiebot", driver_obj)
 
     print "Service started, connect via one of the following:"
     print "rr+local:///?nodename=DuckiebotServer.Drive&service=Duckiebot"
