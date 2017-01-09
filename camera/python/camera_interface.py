@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import sys
+import argparse
 import io
+import socket
 import numpy as np
 from picamera import PiCamera
 import threading, thread
@@ -35,7 +37,7 @@ function void stopCapturing()
 function DuckieImage captureImage()
 
 function void toggleFramerate()
-functon void changeFormat(string format)
+function void changeFormat(string format)
 
 pipe DuckieImage ImageStream
 
@@ -190,7 +192,7 @@ class Camera_impl(object):
         return self._framerate
 
     @property 
-    def resolution(self)
+    def resolution(self):
         return self._resolution
 
     @property
@@ -247,14 +249,14 @@ if __name__ == '__main__':
         port = t2.GetListenPort()
 
 
-    # Initialize the object
-    camera_obj = Camera_impl()
-    
     # Register the service def
     RRN.RegisterServiceType(camera_servicedef)
 
+    # Initialize the object
+    camera_obj = Camera_impl()
+    
     # Register the service
-    RRN.RegisterService("Duckiebot_Camera","Duckiebot_Interface.Duckiebot_Camera", driver_obj)
+    RRN.RegisterService("Duckiebot_Camera","Duckiebot_Interface.Duckiebot_Camera", camera_obj)
 
     print "Service started, connect via one of the following:"
     print "rr+local:///?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"
