@@ -263,7 +263,7 @@ if __name__ == '__main__':
     print "rr+tcp://%s:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(socket.gethostbyname(socket.gethostname()), port)
     try:
         while True:
-
+            pass
     except (KeyboardInterrupt,SystemExit):
         camera_obj.on_shutdown()
         

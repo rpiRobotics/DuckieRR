@@ -56,6 +56,10 @@ fi
 RAPSICAM_DIR="$DEPEND_DIR/raspicam-0.1.3"
 if [ ! -d "$RASPICAM_DIR" ]; then
 	cd $DEPEND_DIR
+
+	# install unzip since I guess it isn't installed
+	sudo apt-get install unzip
+
 	# unzip the zip file
 	unzip "raspicam-0.1.3.zip"
 

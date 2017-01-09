@@ -225,7 +225,7 @@ if __name__ == '__main__':
     print "rr+tcp://%s:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(socket.gethostbyname(socket.gethostname()), port)
     try:
         while True:
-
+            pass
     except (KeyboardInterrupt,SystemExit):
         driver_obj.on_shutdown()
         
