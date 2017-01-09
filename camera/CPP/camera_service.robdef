@@ -22,7 +22,7 @@ function void stopCapturing()
 function DuckieImage captureImage()
 
 function void toggleFramerate()
-functon void changeFormat(string format)
+function void changeFormat(string format)
 
 pipe DuckieImage ImageStream
 
