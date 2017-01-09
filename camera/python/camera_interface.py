@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 import io
 import numpy as np
 from picamera import PiCamera
@@ -234,7 +235,7 @@ if __name__ == '__main__':
 
     # Create TCP Transport, register it, and start the server  
     t2 = RR.TcpTransport()
-    t2.EnableNodeAnnouce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
+    t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
             RR.IPNodeDiscoveryFlags_LINK_LOCAL |
             RR.IPNodeDiscoveryFlags_SITE_LOCAL)
 
@@ -253,7 +254,7 @@ if __name__ == '__main__':
     RRN.RegisterServiceType(camera_servicedef)
 
     # Register the service
-    RRN.RegisterService("Duckiebot_Camera","Duckiebot_Interface/Duckiebot_Camera", driver_obj)
+    RRN.RegisterService("Duckiebot_Camera","Duckiebot_Interface.Duckiebot_Camera", driver_obj)
 
     print "Service started, connect via one of the following:"
     print "rr+local:///?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"
