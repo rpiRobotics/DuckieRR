@@ -16,7 +16,7 @@ return "Duckiebot_Interface";
 std::string Duckiebot_InterfaceFactory::DefString()
 {
 std::string out(
-"#Service to provide interface to Duckiebot\n"
+"#Service to provide interface to Duckiebot camera\n"
 "service Duckiebot_Interface\n"
 "\n"
 "option version 0.8\n"
@@ -45,6 +45,7 @@ std::string out(
 "pipe DuckieImage ImageStream\n"
 "\n"
 "end object\n"
+"\n"
 );
 return out;
 }

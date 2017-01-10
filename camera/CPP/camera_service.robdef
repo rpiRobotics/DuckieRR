@@ -1,4 +1,4 @@
-#Service to provide interface to Duckiebot
+#Service to provide interface to Duckiebot camera
 service Duckiebot_Interface
 
 option version 0.8

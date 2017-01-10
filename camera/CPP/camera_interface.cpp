@@ -40,7 +40,9 @@ void abortSignalHandler(int signum){
     cerr << "Caught Abort Signal, handling it before aborting..." << endl;
     // just make sure we shutdown RR.
     RobotRaconteurNode::s()->Shutdown();
+    raise(SIGTERM);
     exit(signum);
+    cerr << "you are here... but I don't know why you didn't exit... press ctrl+c to exit" <<endl;
 }
 
 int main ( int argc,char **argv ) {
@@ -78,7 +80,7 @@ int main ( int argc,char **argv ) {
     boost::shared_ptr<Camera_impl> camera_obj = boost::make_shared<Camera_impl>();
 
     //Register the service
-    RobotRaconteurNode::s()->RegisterService("Duckiebot_Camera","Duckiebot_Interface.Duckiebot_Camera",camera_obj);
+    RobotRaconteurNode::s()->RegisterService("Duckiebot_Camera","Duckiebot_Interface",camera_obj);
 
 
     // Determine hostname

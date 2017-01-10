@@ -34,14 +34,15 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(RobotRaconteur REQUIRED)
 
 # Run RobotRaconteurGen to get the stubskell_files
-add_custom_target(stubskell 
+add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/Duckiebot_Interface_stubskel.cpp 
     COMMAND ${RobotRaconteur_GEN} --thunksource --lang=cpp ${CMAKE_CURRENT_SOURCE_DIR}/camera_service.robdef
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/camera_service.robdef"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
     COMMENT "Generating Thunk Source Files")
 
 # The executable and link libraries
 SET (CMAKE_CXX_FLAGS "-std=c++11")
 add_executable (camera_interface camera_interface.cpp camera_impl.cpp Duckiebot_Interface_stubskel.cpp)
-add_dependencies(camera_interface stubskell)
+#add_dependencies(camera_interface Duckiebot_Interface_stubskel.cpp)
 
 target_link_libraries (camera_interface ${raspicam_LIBS} ${RobotRaconteur_LIBRARY} ${Boost_LIBRARIES} ${RobotRaconteur_EXTRA_LIBRARIES})
