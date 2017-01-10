@@ -7,12 +7,6 @@ Camera_impl::Camera_impl(void){
 	// Initialize Camera
 	camera = boost::make_shared<raspicam::RaspiCam>();
 	cout << "[" << _nodeName << "] Opening Camera..."<<endl;
-    if ( !camera->open()) throw std::runtime_error("Error opening the camera");
-    _capturing = false;
-    
-    //wait a while until camera stabilizes
-    cout<<"Sleeping for 3 secs"<<endl;
-    boost::this_thread::sleep(boost::posix_time::seconds(3) );
 
     _framerate = _framerate_high;
     _update_framerate = false;
@@ -30,6 +24,13 @@ Camera_impl::Camera_impl(void){
     _image->format = _format;
     _image->width = _res_w;
     _image->height = _res_h;
+
+    if ( !camera->open()) throw std::runtime_error("Error opening the camera");
+    _capturing = false;
+    
+    //wait a while until camera stabilizes
+    cout<<"Sleeping for 3 secs"<<endl;
+    boost::this_thread::sleep(boost::posix_time::seconds(3) );
 }
 
 void Camera_impl::Shutdown(void){
@@ -99,11 +100,31 @@ void Camera_impl::toggleFramerate(){
 }
 
 void Camera_impl::changeFormat(std::string format){
+	if (_capturing) throw std::runtime_error("Must stop capturing to change format.");
+	// release the camera so we can change the format.
+
+	//determine if the new format is valid...
 	map<string, raspicam::RASPICAM_FORMAT>::const_iterator it = _format_options.find(format);
 	if (it == _format_options.end()) throw std::runtime_error("Valid formats are 'grey', 'rgb', and 'bgr'");
+	
+	// if it is...
+	// release the camera so we can change the format
+	camera->release();
+	
+	//change the format...
+	camera->setFormat(it->second);
+
+	//open the camera again...
+	if ( !camera->open()) throw std::runtime_error("Error opening the camera");
+    
+    //wait a while until camera stabilizes
+    cout<<"Sleeping for 3 secs"<<endl;
+    boost::this_thread::sleep(boost::posix_time::seconds(3) );
+	
+	//update our other vals...
 	_format = format;
 	_image->format = _format;
-	camera->setFormat(it->second);
+	
 }
 
 /********************************

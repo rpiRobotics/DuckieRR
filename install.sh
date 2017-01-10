@@ -54,7 +54,7 @@ fi
 # Extract and Make raspicam code
 # ------------------------
 RAPSICAM_DIR="$DEPEND_DIR/raspicam-0.1.3"
-if [ ! -d "$RASPICAM_DIR" ]; then
+if [[ ! -d "$RASPICAM_DIR" && -x "$RASPICAM_DIR" ]]; then
 	cd $DEPEND_DIR
 
 	# install unzip since I guess it isn't installed

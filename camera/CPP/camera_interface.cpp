@@ -40,6 +40,7 @@ void abortSignalHandler(int signum){
     cerr << "Caught Abort Signal, handling it before aborting..." << endl;
     // just make sure we shutdown RR.
     RobotRaconteurNode::s()->Shutdown();
+    exit(signum);
 }
 
 int main ( int argc,char **argv ) {
@@ -85,7 +86,7 @@ int main ( int argc,char **argv ) {
     string hostname;
     string ip;
     int have_name = gethostname(hn, 20);
-    if (have_name){
+    if (have_name !=-1){
         hostname = string(hn);
         // do some more stuff for ip...
         ip = "<IP_ADDRESS>";
