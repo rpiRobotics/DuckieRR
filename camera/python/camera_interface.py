@@ -28,7 +28,7 @@ end struct
 object Duckiebot_Camera
 
 property double framerate
-property double[] resolution
+property int32[] resolution
 property string format
 property uint8 capturing
 
