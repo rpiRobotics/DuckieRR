@@ -8,42 +8,10 @@ from picamera import PiCamera
 import threading, thread
 import traceback
 import time
+import struct
 
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
-
-camera_servicedef="""
-#Service to provide interface to Duckiebot
-service Duckiebot_Interface
-
-option version 0.8
-
-struct DuckieImage
-    field string format
-    field int32 width
-    field int32 height
-    field uint8[] data
-end struct
-
-object Duckiebot_Camera
-
-property double framerate
-property int32[] resolution
-property string format
-property uint8 capturing
-
-function void startCapturing()
-function void stopCapturing()
-function DuckieImage captureImage()
-
-function void toggleFramerate()
-function void changeFormat(string format)
-
-pipe DuckieImage ImageStream
-
-end object
-
-"""
 
 class Camera_impl(object):
     def __init__(self):
@@ -59,7 +27,7 @@ class Camera_impl(object):
         self._resolution = [self.res_w, self.res_h]
         
         self.format_options = ('jpeg', 'rgb', 'bgr')
-        self._format = 'jpeg'
+        self._format = 'rgb'
 
         
         self.camera = PiCamera()
@@ -103,7 +71,8 @@ class Camera_impl(object):
             self.camera.capture(self.stream, format=self._format, use_video_port=True)
             self.stream.seek(0)
             
-            self._image.data = self.stream.getvalue()
+            data = self.stream.getvalue()
+            self._image.data = bytearray(data) # must cast as byte array for RR
 
             # clear stream
             self.stream.seek(0)
@@ -144,7 +113,8 @@ class Camera_impl(object):
 
             with self._lock:
                 stream.seek(0)
-                self._image.data = stream.getvalue()
+                data = stream.getvalue()
+                self._image.data = bytearray(data)
             with self._imagestream_endpoints_lock:
                 # send to pipe endpoints
                 for ep in self._imagestream_endpoints:
@@ -248,8 +218,9 @@ if __name__ == '__main__':
     if (port == 0):
         port = t2.GetListenPort()
 
-
     # Register the service def
+    with open('${CAMERA_ROBDEF}', 'r') as f:
+        service_def = f.read()
     RRN.RegisterServiceType(camera_servicedef)
 
     # Initialize the object
@@ -263,7 +234,7 @@ if __name__ == '__main__':
     print "rr+tcp://localhost:%s/?service=Duckiebot_Camera"%(port)
     print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(port)
     print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(socket.gethostname(), port)
-    print "rr+tcp://%s:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(socket.gethostbyname(socket.gethostname()), port)
+    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(port)
     try:
         while True:
             pass

@@ -105,7 +105,7 @@ void Camera_impl::changeFormat(std::string format){
 
 	//determine if the new format is valid...
 	map<string, raspicam::RASPICAM_FORMAT>::const_iterator it = _format_options.find(format);
-	if (it == _format_options.end()) throw std::runtime_error("Valid formats are 'grey', 'rgb', and 'bgr'");
+	if (it == _format_options.end()) throw std::runtime_error("Valid formats are 'gray', 'rgb', and 'bgr'");
 	
 	// if it is...
 	// release the camera so we can change the format

@@ -33,12 +33,16 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(RobotRaconteur REQUIRED)
 
-# Run RobotRaconteurGen to get the stubskell_files
-add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/Duckiebot_Interface_stubskel.cpp 
-    COMMAND ${RobotRaconteur_GEN} --thunksource --lang=cpp ${CMAKE_CURRENT_SOURCE_DIR}/camera_service.robdef
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/camera_service.robdef"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
-    COMMENT "Generating Thunk Source Files")
+if(CAMERA_ROBDEF)
+    # Run RobotRaconteurGen to get the stubskell_files
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/Duckiebot_Interface_stubskel.cpp 
+        COMMAND ${RobotRaconteur_GEN} --thunksource --lang=cpp ${CAMERA_ROBDEF}
+        DEPENDS ${CAMERA_ROBDEF}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+        COMMENT "Generating Thunk Source Files")
+else(CAMERA_ROBDEF)
+    message( FATAL_ERROR "Robdef file NOT FOUND")
+endif()
 
 # The executable and link libraries
 SET (CMAKE_CXX_FLAGS "-std=c++11")

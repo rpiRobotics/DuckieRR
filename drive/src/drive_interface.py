@@ -222,7 +222,7 @@ if __name__ == '__main__':
     print "rr+tcp://localhost:%s/?service=Duckiebot"%(port)
     print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
     print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(socket.gethostname(), port)
-    print "rr+tcp://%s:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(socket.gethostbyname(socket.gethostname()), port)
+    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
     try:
         while True:
             pass

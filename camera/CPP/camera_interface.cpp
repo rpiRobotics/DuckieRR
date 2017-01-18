@@ -90,7 +90,7 @@ int main ( int argc,char **argv ) {
     int have_name = gethostname(hn, 20);
     if (have_name !=-1){
         hostname = string(hn);
-        // do some more stuff for ip...
+        // TODO: figure out how to get the IP address
         ip = "<IP_ADDRESS>";
     }
     else{
@@ -117,4 +117,3 @@ int main ( int argc,char **argv ) {
     RobotRaconteurNode::s()->Shutdown();
     return 0;
 }
-//
