@@ -254,7 +254,7 @@ if __name__ == '__main__':
     LD_obj = LineDetector_impl(args.config)
 
     # Register the service
-    RRN.RegisterService("LineDetector","Duckiebot_Interface.LineDetector")
+    RRN.RegisterService("LineDetector","Duckiebot_Interface.LineDetector",LD_obj)
 
     print "Service started, connect via the following:"
     print "rr+local:///?nodename=DuckiebotServer.LineDetector&service=LineDetector"

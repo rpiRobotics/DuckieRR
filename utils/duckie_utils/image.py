@@ -11,7 +11,7 @@ def DuckieImageToBGRMat(duckieim):
     else:
         if (fmt == 'rgb'):
             frame=duckieim.data.reshape([duckieim.height, duckieim.width, 3], order='C')
-            frame=cv2.cvtColor(frame2, cv2.COLOR_RGB2BGR)
+            frame=cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         elif (fmt == 'jpeg'):
             s=np.fromstring(duckieim.data, np.uint8)
             frame = cv2.imdecode(s,cv2,CV_LOAD_IMAGE_COLOR)
