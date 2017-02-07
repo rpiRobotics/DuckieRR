@@ -40,7 +40,8 @@ void abortSignalHandler(int signum){
     cerr << "Caught Abort Signal, handling it before aborting..." << endl;
     // just make sure we shutdown RR.
     RobotRaconteurNode::s()->Shutdown();
-    raise(SIGTERM);
+    sig_caught = 1;
+    //raise(SIGTERM);
     exit(signum);
     cerr << "you are here... but I don't know why you didn't exit... press ctrl+c to exit" <<endl;
 }
