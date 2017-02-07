@@ -1,0 +1,369 @@
+#!/usr/bin/env python
+from line_detector.stats import Stats
+import numpy as np
+import time
+import yaml
+import sys, argparse
+from math import floor, atan2, pi, cos, sin, sqrt
+from scipy.ndimage.filters import gaussian_filter
+from scipy.stats import multivariate_normal, entropy
+
+import RobotRaconteur as RR
+RRN = RR.RobotRaconteurNode.s
+
+laneInfo_servicedef="""
+#Service to provide interface to Duckiebots Detected Lines
+service Duckiebot_Interface
+
+option version 0.8
+
+# ideally these shouldn't be repeated here...
+# this should probably import the other robdef so it can be used.
+# but that would require them to define different services I think...
+option constant uint8 WHITE 0
+option constant uint8 YELLOW 1
+option constant uint8 RED 2
+
+struct LanePose
+    field double d #lateral offset from center
+    field double sigma_d  
+    field double phi #heading error 
+    field double sigma_phi
+    field uint8 in_lane  
+end
+
+object LaneInfo
+    property LanePose lanePose
+end object
+"""
+
+class LaneInfo_impl(object):
+    """Lane Info node will return position in lane"""
+    def __init__(self, config_file=None):
+        self.node_name = "laneInfo"
+
+        self.active = True
+
+        self.getParams(config_file)
+        
+        # This may need to change...
+        self.LDConsts = RRN.GetConstants("Duckiebot_Interface")
+        
+        self.d,self.phi = np.mgrid[self.d_min:self.d_max:self.delta_d,self.phi_min:self.phi_max:self.delta_phi]
+        self.beliefRV=np.empty(self.d.shape)
+        self.initializeBelief()
+        self.lanePose = RRN.NewStructure("Duckiebot_Interface.LanePose")
+        self.lanePose.d=self.mean_0[0]
+        self.lanePose.phi=self.mean_0[1]
+
+        self.dwa = -(self.zero_val*self.l_peak**2 + self.zero_val*self.l_max**2 - self.l_max**2*self.peak_val - 2*self.zero_val*self.l_peak*self.l_max + 2*self.l_peak*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
+        self.dwb = (2*self.zero_val*self.l_peak**3 + self.zero_val*self.l_max**3 - self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak**2*self.l_max + 3*self.l_peak**2*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
+        self.dwc = -(self.zero_val*self.l_peak**3 + 2*self.zero_val*self.l_max**3 - 2*self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak*self.l_max**2 + 3*self.l_peak*self.l_max**2*self.peak_val)/(self.l_peak*self.l_max*(self.l_peak - self.l_max)**2)
+
+
+        self.t_last_update = time.time()
+        self.v_current = 0
+        self.w_current = 0
+        self.v_last = 0
+        self.w_last = 0
+        self.v_avg = 0
+        self.w_avg = 0
+        
+        
+        self.stats = Stats()
+        # only print every 100 cycles
+        self.intermittent_interval = 100
+        self.intermittent_counter = 0
+
+        if self.use_propagation:
+            # currently velocity not returned by drive service...
+            # need to implement that
+            raise RuntimeError("'Use Propagation' is not yet implemented.")
+            
+            # try connecting to the drive service so we can determine the current velocity
+            try:
+                drive_url = 'rr+local:///?nodename=DuckiebotServer.Drive&service=Duckiebot'
+                self.drive = RRN.ConnectService(drive_url)
+            except Exception as e:
+                print "[%s] WARNING: Could not connect to Drive Interface at %s"%(self.node_name, drive_url)
+                print "[%s] will wait 5 seconds and try again..."
+                time.sleep(5)
+                try:
+                    self.drive = RRN.ConnectService(lineDetect_url)
+                except Exception as e:
+                    msg = "[%s] ERROR: Still could not connect to Drive Interface at %s\n"%(self.node_name, drive_url)
+                    msg+= "[%s] Shutting down." %(self.node_name)
+                    raise RuntimeError(msg)
+
+        # Find the line segment service and add a callback for new segments
+        try:
+            lineDetect_url = 'rr+local:///?nodename=DuckiebotServer.LineDetector&service=LineDetector'
+            self.lineDetector = RRN.ConnectService(lineDetect_url)
+        except Exception as e:
+            print "[%s] WARNING: Could not connect to Line Detector Interface at %s"%(self.node_name, lineDetect_url)
+            print "[%s] will wait 5 seconds and try again..."
+            time.sleep(5)
+            try:
+                self.lineDetector = RRN.ConnectService(lineDetect_url)
+            except Exception as e:
+                msg = "[%s] ERROR: Still could not connect to Line Detector Interface at %s\n"%(self.node_name, lineDetect_url)
+                msg+= "[%s] Shutting down." %(self.node_name)
+                raise RuntimeError(msg)
+
+        # Add the callback to process new segments
+        self.lineDetector.newSegments += self.processSegments
+        
+    
+    def getParams(self,config_file):
+        # load param files
+        with open('${DEFAULT_LANE_PARAMS}','r') as f:
+            self.default_params = yaml.load(f.read())
+
+        if config_file is not None:
+            with open(config_file, 'r') as f:
+                self.params = yaml.load(f.read())
+        else:
+            self.params = self.default_params
+
+        self.mean_0 = [self.params["mean_d_0"], self.params["mean_phi_0"] ]
+        self.cov_0  = [ [self.params["sigma_d_0"] , 0] , [0, self.params["sigma_phi_0"] ] ]
+        self.delta_d     = self.params["delta_d"] # in meters
+        self.delta_phi   = self.params["delta_phi"] # in radians
+        self.d_max       = self.params["d_max"]
+        self.d_min       = self.params["d_min"]
+        self.phi_min     = self.params["phi_min"]
+        self.phi_max     = self.params["phi_max"]
+
+        self.cov_v       = self.params["cov_v"] # linear velocity "input"
+        self.cov_omega   = self.params["cov_omega"] # angular velocity "input"
+        self.linewidth_white = self.params["linewidth_white"]
+        self.linewidth_yellow = self.params["linewidth_yellow"]
+        self.lanewidth        = self.params["lanewidth"]
+        self.min_max = self.params["min_max"] # nats
+        # For use of distance weighting (dw) function
+        self.use_distance_weighting = self.params["use_distance_weighting"]
+        self.zero_val    = self.params["zero_val"]
+        self.l_peak      = self.params["l_peak"]
+        self.peak_val    = self.params["peak_val"]
+        self.l_max       = self.params["l_max"]
+
+        # For use of maximum segment distance
+        self.use_max_segment_dist = self.params["use_max_segment_dist"]
+        self.max_segment_dist = self.params["max_segment_dist"]
+
+        # For use of minimum segment count
+        self.use_min_segs = self.params["use_min_segs"]
+        self.min_segs = self.params["min_segs"]
+
+        # For propagation
+        self.use_propagation = self.params["use_propagation"]
+        self.cov_mask = [self.params["sigma_d_mask"] , self.params["sigma_phi_mask"]]
+
+    @property
+    def lanePose(self):
+        return self.lanePose
+
+    def intermittent_log_now(self):
+        return self.intermittent_counter % self.intermittent_interval == 1
+
+    def intermittent_log(self,s):
+        if not self.intermittent_log_now():
+            return
+        msg = "[%s] %3d:%s"%(self.node_name, self.intermittent_counter, s)
+        print msg
+
+    def processSegments(self,segment_list):
+        """
+    
+Lane Filter Implementation
+
+Author: Liam Paull
+
+Inputs: SegmentList from line detector
+
+Outputs: LanePose - the d (lateral displacement) and phi (relative angle) 
+of the car in the lane
+
+For more info on algorithm and parameters please refer to the google doc:
+ https://drive.google.com/open?id=0B49dGT7ubfmSX1k5ZVN1dEU4M2M
+
+        """
+        if not self.active:
+            return
+        t_start = time.time()
+
+        if self.use_propagation:
+            self.propagateBelief()
+            self.t_last_update = time.time()
+
+        # initialize measurement likelihood
+        measurement_likelihood = np.zeros(self.d.shape)
+
+        for segment in segment_list:
+            if segment.color != self.LDConsts.WHITE and segment.color != self.LDConsts.YELLOW:
+                continue
+            if segment.points[0].x < 0 or segment.points[1].x < 0:
+                continue
+
+            d_i,phi_i,l_i = self.generateVote(segment)
+            if d_i > self.d_max or d_i < self.d_min or phi_i < self.phi_min or phi_i>self.phi_max:
+                continue
+            if self.use_max_segment_dist and (l_i > self.max_segment_dist):
+                continue
+
+            i = floor((d_i - self.d_min)/self.delta_d)
+            j = floor((phi_i - self.phi_min)/self.delta_phi)
+
+            if self.use_distance_weighting:           
+                dist_weight = self.dwa*l_i**3+self.dwb*l_i**2+self.dwc*l_i+self.zero_val
+                if dist_weight < 0:
+                    continue
+                measurement_likelihood[i,j] = measurement_likelihood[i,j] + dist_weight
+            else:
+                measurement_likelihood[i,j] = measurement_likelihood[i,j] +  1/(l_i)
+
+
+        if np.linalg.norm(measurement_likelihood) == 0:
+            return
+        measurement_likelihood = measurement_likelihood/np.sum(measurement_likelihood)
+
+        if self.use_propagation:
+            self.updateBelief(measurement_likelihood)
+        else:
+            self.beliefRV = measurement_likelihood
+
+        # TODO entropy test:
+        #print self.beliefRV.argmax()
+
+        maxids = np.unravel_index(self.beliefRV.argmax(),self.beliefRV.shape)
+        
+        self.lanePose.d = self.d_min + maxids[0]*self.delta_d
+        self.lanePose.phi = self.phi_min + maxids[1]*self.delta_phi
+        
+        max_val = self.beliefRV.max()
+        self.lanePose.in_lane = max_val > self.min_max and len(segment_list_msg.segments) > self.min_segs and np.linalg.norm(measurement_likelihood) != 0
+        
+        # print "time to process segments:"
+        # print rospy.get_time() - t_start
+
+    def initializeBelief(self):
+        pos = np.empty(self.d.shape + (2,))
+        pos[:,:,0]=self.d
+        pos[:,:,1]=self.phi
+        self.cov_0
+        RV = multivariate_normal(self.mean_0,self.cov_0)
+        self.beliefRV=RV.pdf(pos)
+
+    def propagateBelief(self):
+        delta_t = time.time() - self.t_last_update
+        v_current = self.drive.v
+        w_current = self.drive.omega
+
+        d_t = self.d + v_current*delta_t*np.sin(self.phi)
+        phi_t = self.phi + w_current*delta_t
+
+        p_beliefRV = np.zeros(self.beliefRV.shape)
+
+        for i in range(self.beliefRV.shape[0]):
+            for j in range(self.beliefRV.shape[1]):
+                if self.beliefRV[i,j] > 0:
+                    if d_t[i,j] > self.d_max or d_t[i,j] < self.d_min or phi_t[i,j] < self.phi_min or phi_t[i,j] > self.phi_max:
+                        continue
+                    i_new = floor((d_t[i,j] - self.d_min)/self.delta_d)
+                    j_new = floor((phi_t[i,j] - self.phi_min)/self.delta_phi)
+                    p_beliefRV[i_new,j_new] += self.beliefRV[i,j]
+
+        s_beliefRV = np.zeros(self.beliefRV.shape)
+        gaussian_filter(100*p_beliefRV, self.cov_mask, output=s_beliefRV, mode='constant')
+
+        if np.sum(s_beliefRV) == 0:
+            return
+        self.beliefRV = s_beliefRV/np.sum(s_beliefRV)
+
+    def updateBelief(self,measurement_likelihood):
+        self.beliefRV=np.multiply(self.beliefRV+1,measurement_likelihood+1)-1
+        self.beliefRV=self.beliefRV/np.sum(self.beliefRV)#np.linalg.norm(self.beliefRV)
+
+    def generateVote(self,segment):
+        p1 = np.array([segment.points[0].x, segment.points[0].y])
+        p2 = np.array([segment.points[1].x, segment.points[1].y])
+        t_hat = (p2-p1)/np.linalg.norm(p2-p1)
+        n_hat = np.array([-t_hat[1],t_hat[0]])
+        d1 = np.inner(n_hat,p1)
+        d2 = np.inner(n_hat,p2)
+        l1 = np.inner(t_hat,p1)
+        l2 = np.inner(t_hat,p2)
+        if (l1 < 0):
+            l1 = -l1;
+        if (l2 < 0):
+            l2 = -l2;
+        l_i = (l1+l2)/2
+        d_i = (d1+d2)/2
+        phi_i = np.arcsin(t_hat[1])
+        if segment.color == self.LDConsts.WHITE: # right lane is white
+            if(p1[0] > p2[0]): # right edge of white lane
+                d_i = d_i - self.linewidth_white
+            else: # left edge of white lane
+                d_i = - d_i
+                phi_i = -phi_i
+            d_i = d_i - self.lanewidth/2
+
+        elif segment.color == self.LDConsts.YELLOW: # left lane is yellow
+            if (p2[0] > p1[0]): # left edge of yellow lane
+                d_i = d_i - self.linewidth_yellow
+                phi_i = -phi_i
+            else: # right edge of white lane
+                d_i = -d_i
+            d_i =  self.lanewidth/2 - d_i
+
+        return d_i, phi_i, l_i
+
+    def getSegmentDistance(self, segment):
+        x_c = (segment.points[0].x + segment.points[1].x)/2
+        y_c = (segment.points[0].y + segment.points[1].y)/2
+
+        return sqrt(x_c**2 + y_c**2)
+
+    def onShutdown(self):
+        print "[%s] Shutdown."%(self.node_name)
+
+
+if __name__ == '__main__':
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='Initialize the laneInfo service')
+    parser.add_argument('--config', type=open,
+        help='A config file for the laneInfo service (Otherwise use Default)')
+    parser.add_argument('args', nargs=argparse.REMAINDER)
+
+    args = parser.parse_args(sys.argv[1:])
+
+    # Enable NumPy
+    RRN.UseNumPy = True
+
+    # Create a local transport only
+    t1 = RR.LocalTransport()
+    t1.StartServerAsNodeName("DuckiebotServer.LaneInfo")
+    RRN.RegisterTransport(t1)
+
+    # Register the service def
+    RRN.RegisterServiceType(laneInfo_servicedef)
+
+    # Initialize the object
+    laneInfo_obj = LaneInfo_impl(args.config)
+
+    # Register the service
+    RRN.RegisterService("LaneInfo","Duckiebot_Interface.LaneInfo",laneInfo_obj)
+
+    print "Service started, connect via the following:"
+    print "rr+local:///?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"
+
+    try:
+        while True:
+            pass
+    except(KeyboardInterrupt, SystemExit):
+        laneInfo_obj.onShutdown()
+
+        # This must be here to prevent segfault
+        RRN.Shutdown()
+        sys.exit(0)

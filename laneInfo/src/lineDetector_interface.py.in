@@ -43,12 +43,14 @@ end struct
 object LineDetector
     property Segment{list} segments
 
+    # likely want some way of clients only checking when new segments found.
     #pipe Segment{list} segmentStream
+    event newSegments(Segment{list} segs)
 end object
 """
 
 class LineDetector_impl(object):
-    """Line Detector Node will return detected lines. This class should maybe just be incorporated into RR service"""
+    """Line Detector Node will return detected lines."""
     def __init__(self, config_file=None):
         self.node_name = "lineDetector"
 
@@ -112,6 +114,8 @@ class LineDetector_impl(object):
         try:
             self.duckie_cam.startCapturing()
         except: pass
+
+        self.newSegments = RR.EventHook()
     
     @property
     def segments(self):
@@ -206,8 +210,10 @@ class LineDetector_impl(object):
             lines_normalized_red = ((red.lines + arr_cutoff) * arr_ratio)
             self._segments.extend(self.toSegment(lines_normalized_red, red.normals, self.LDConsts.RED))
 
+        self.newSegments.fire(self._segments)
         self.intermittent_log('# segments: white %3d yellow %3d red %3d' % (len(white.lines),
                 len(yellow.lines), len(red.lines)))
+
 
     def toSegment(self, lines, normals, color):
         segmentList = []
