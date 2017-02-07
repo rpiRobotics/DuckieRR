@@ -7,6 +7,7 @@ import sys, argparse
 from math import floor, atan2, pi, cos, sin, sqrt
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import multivariate_normal, entropy
+import socket
 
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
@@ -336,6 +337,9 @@ if __name__ == '__main__':
         description='Initialize the laneInfo service')
     parser.add_argument('--config', type=open,
         help='A config file for the laneInfo service (Otherwise use Default)')
+    parser.add_argument('--port',type=int,default=0,
+        help='TCP port to host service on' +\
+        '(will auto-generate if not specified)')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     args = parser.parse_args(sys.argv[1:])
@@ -343,10 +347,22 @@ if __name__ == '__main__':
     # Enable NumPy
     RRN.UseNumPy = True
 
-    # Create a local transport only
+    # Create a local transport
     t1 = RR.LocalTransport()
     t1.StartServerAsNodeName("DuckiebotServer.LaneInfo")
     RRN.RegisterTransport(t1)
+
+    # Create TCP Transport, register it, and start the server  
+    t2 = RR.TcpTransport()
+    t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
+            RR.IPNodeDiscoveryFlags_LINK_LOCAL |
+            RR.IPNodeDiscoveryFlags_SITE_LOCAL)
+    RRN.RegisterTransport(t2)
+
+    port = args.port
+    t2.StartServer(port)
+    if (port == 0):
+        port = t2.GetListenPort()
 
     # Register the service def
     RRN.RegisterServiceType(laneInfo_servicedef)
@@ -359,6 +375,10 @@ if __name__ == '__main__':
 
     print "Service started, connect via the following:"
     print "rr+local:///?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"
+    print "rr+tcp://localhost:%s/?service=Duckiebot"%(port)
+    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
+    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(socket.gethostname(), port)
+    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
 
     try:
         while True:
