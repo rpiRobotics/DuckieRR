@@ -38,6 +38,8 @@ void Camera_impl::Shutdown(void){
 	camera->release();
 	_is_shutdown = true;
 	_capturing = false;
+	cout << "[" << _nodeName << "] Shutdown."<<endl;
+
 }
 
 Camera_impl::~Camera_impl(void){

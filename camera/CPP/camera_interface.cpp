@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <signal.h>
+#include <exception>
 
 using namespace RobotRaconteur;
 using namespace std;
@@ -39,11 +40,15 @@ void signalHandler(int signum){
 void abortSignalHandler(int signum){
     cerr << "Caught Abort Signal, handling it before aborting..." << endl;
     // just make sure we shutdown RR.
-    RobotRaconteurNode::s()->Shutdown();
+    try{
+	cerr << "Checking that RR is shutdown" << endl;
+    	RobotRaconteurNode::s()->Shutdown();
+    }
+    catch (std::exception& e){ cerr << e.what() << endl; }
+    catch (...){ cerr << "Another Exception Occurred" << endl; }
     sig_caught = 1;
     //raise(SIGTERM);
-    exit(signum);
-    cerr << "you are here... but I don't know why you didn't exit... press ctrl+c to exit" <<endl;
+    //exit(signum);
 }
 
 int main ( int argc,char **argv ) {

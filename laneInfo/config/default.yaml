@@ -34,6 +34,7 @@ d_min: -0.15
 phi_min: -1.5
 phi_max: 1.5
 cov_v: 0.5
+cov_omega: 0.01
 linewidth_white: 0.05
 linewidth_yellow: 0.025
 lanewidth: 0.20
@@ -44,7 +45,7 @@ use_min_segs: False
 min_segs: 10
 
 # maximum segment distance:
-use_maximum_segment_dist: False
+use_max_segment_dist: False
 max_segment_dist: 0.3
 
 # distance weighting:

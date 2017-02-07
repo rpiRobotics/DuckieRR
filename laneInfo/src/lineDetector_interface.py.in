@@ -218,14 +218,19 @@ class LineDetector_impl(object):
     def toSegment(self, lines, normals, color):
         segmentList = []
         for x1,y1,x2,y2,norm_x,norm_y in np.hstack((lines,normals)):
-            segment = RRN.NewStructure("DuckiebotInterface.Segment")
+            segment = RRN.NewStructure("Duckiebot_Interface.Segment")
+            segment.pixels_normalized = []
             segment.color = color
-            segment.pixels_normalized[0].x = x1
-            segment.pixels_normalized[0].y = y1
-            segment.pixels_normalized[1].x = x2
-            segment.pixels_normalized[2].y = y2
-            segment.normal.x = norm_x
-            segment.normal.y = norm_y
+	    vec = RRN.NewStructure("Duckiebot_Interface.Vector2D")
+            vec.x = x1
+            vec.y = y1
+            segment.pixels_normalized.append(vec)
+            vec.x = x2
+            vec.y = y2
+            segment.pixels_normalized.append(vec)
+            vec.x = norm_x
+            vec.y = norm_y
+            segment.normal = vec
 
             segmentList.append(segment)
         return segmentList

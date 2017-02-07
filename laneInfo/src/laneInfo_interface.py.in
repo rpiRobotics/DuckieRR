@@ -25,12 +25,14 @@ option constant uint8 YELLOW 1
 option constant uint8 RED 2
 
 struct LanePose
-    field double d #lateral offset from center
+    # d - lateral offset from center
+    # phi - heading error
+    field double d
     field double sigma_d  
-    field double phi #heading error 
+    field double phi 
     field double sigma_phi
     field uint8 in_lane  
-end
+end struct
 
 object LaneInfo
     property LanePose lanePose
@@ -52,9 +54,9 @@ class LaneInfo_impl(object):
         self.d,self.phi = np.mgrid[self.d_min:self.d_max:self.delta_d,self.phi_min:self.phi_max:self.delta_phi]
         self.beliefRV=np.empty(self.d.shape)
         self.initializeBelief()
-        self.lanePose = RRN.NewStructure("Duckiebot_Interface.LanePose")
-        self.lanePose.d=self.mean_0[0]
-        self.lanePose.phi=self.mean_0[1]
+        self._lanePose = RRN.NewStructure("Duckiebot_Interface.LanePose")
+        self._lanePose.d=self.mean_0[0]
+        self._lanePose.phi=self.mean_0[1]
 
         self.dwa = -(self.zero_val*self.l_peak**2 + self.zero_val*self.l_max**2 - self.l_max**2*self.peak_val - 2*self.zero_val*self.l_peak*self.l_max + 2*self.l_peak*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
         self.dwb = (2*self.zero_val*self.l_peak**3 + self.zero_val*self.l_max**3 - self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak**2*self.l_max + 3*self.l_peak**2*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
@@ -101,7 +103,7 @@ class LaneInfo_impl(object):
             self.lineDetector = RRN.ConnectService(lineDetect_url)
         except Exception as e:
             print "[%s] WARNING: Could not connect to Line Detector Interface at %s"%(self.node_name, lineDetect_url)
-            print "[%s] will wait 5 seconds and try again..."
+            print "[%s] will wait 5 seconds and try again..."%(self.node_name)
             time.sleep(5)
             try:
                 self.lineDetector = RRN.ConnectService(lineDetect_url)
@@ -161,7 +163,7 @@ class LaneInfo_impl(object):
 
     @property
     def lanePose(self):
-        return self.lanePose
+        return self._lanePose
 
     def intermittent_log_now(self):
         return self.intermittent_counter % self.intermittent_interval == 1
@@ -237,11 +239,11 @@ For more info on algorithm and parameters please refer to the google doc:
 
         maxids = np.unravel_index(self.beliefRV.argmax(),self.beliefRV.shape)
         
-        self.lanePose.d = self.d_min + maxids[0]*self.delta_d
-        self.lanePose.phi = self.phi_min + maxids[1]*self.delta_phi
+        self._lanePose.d = self.d_min + maxids[0]*self.delta_d
+        self._lanePose.phi = self.phi_min + maxids[1]*self.delta_phi
         
         max_val = self.beliefRV.max()
-        self.lanePose.in_lane = max_val > self.min_max and len(segment_list_msg.segments) > self.min_segs and np.linalg.norm(measurement_likelihood) != 0
+        self._lanePose.in_lane = max_val > self.min_max and len(segment_list_msg.segments) > self.min_segs and np.linalg.norm(measurement_likelihood) != 0
         
         # print "time to process segments:"
         # print rospy.get_time() - t_start
