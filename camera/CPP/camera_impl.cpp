@@ -29,7 +29,7 @@ Camera_impl::Camera_impl(void){
     _capturing = false;
     
     //wait a while until camera stabilizes
-    cout<<"Sleeping for 3 secs"<<endl;
+    cout<< "[" << _nodeName << "] " <<"Sleeping for 3 secs"<<endl;
     boost::this_thread::sleep(boost::posix_time::seconds(3) );
 }
 
@@ -43,7 +43,7 @@ void Camera_impl::Shutdown(void){
 }
 
 Camera_impl::~Camera_impl(void){
-	Shutdown();
+	if (!_is_shutdown) Shutdown();
 }
 
 /********************************
@@ -120,12 +120,14 @@ void Camera_impl::changeFormat(std::string format){
 	if ( !camera->open()) throw std::runtime_error("Error opening the camera");
     
     //wait a while until camera stabilizes
-    cout<<"Sleeping for 3 secs"<<endl;
+    cout<< "[" << _nodeName << "] " << "Sleeping for 3 secs" <<endl;
     boost::this_thread::sleep(boost::posix_time::seconds(3) );
 	
 	//update our other vals...
 	_format = format;
 	_image->format = _format;
+
+	cout<< "[" << _nodeName << "] " << "Format is now" << _format << endl; 
 	
 }
 
