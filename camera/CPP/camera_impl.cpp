@@ -127,7 +127,7 @@ void Camera_impl::changeFormat(std::string format){
 	_format = format;
 	_image->format = _format;
 
-	cout<< "[" << _nodeName << "] " << "Format is now" << _format << endl; 
+	cout<< "[" << _nodeName << "] " << "Format is now " << _format << endl; 
 	
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from duckie_utils.instantiate_utils import instantiate
 from duckie_utils.image import DuckieImageToBGRMat
-from line_detector.stats import Stats
+from duckie_utils.stats import Stats
 import cv2
 import numpy as np
 import threading

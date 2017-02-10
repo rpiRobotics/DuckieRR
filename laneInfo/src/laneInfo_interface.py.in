@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from line_detector.stats import Stats
+from duckie_utils.stats import Stats
 import numpy as np
 import time
 import yaml
