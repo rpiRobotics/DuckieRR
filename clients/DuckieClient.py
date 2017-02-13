@@ -34,8 +34,8 @@ if __name__ == '__main__':
     ################
     # Wheels Tests #
     ################
-    duckie = RRN.ConnectService("rr+tcp://duckiebot1.local:1234/?service=Duckiebot")
-    #duckie = RRN.ConnectService("rr+tcp://10.42.0.48:1234/?service=Duckiebot")
+    duckie = RRN.ConnectService("rr+tcp://duckiebot1.local:1234/?service=Drive")
+    #duckie = RRN.ConnectService("rr+tcp://10.42.0.48:1234/?service=Drive")
     
     print "Set the gain and trim values (determined experimentally so that duckie drives straight)"
     duckie.gain = 5.0
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     ################
     # Camera Tests #
     ################
-    cam = RRN.ConnectService("rr+tcp://duckiebot1.local:1235/?service=Duckiebot_Camera")
+    cam = RRN.ConnectService("rr+tcp://duckiebot1.local:1235/?service=Camera")
 
     print "Changing the format to rgb"
     cam.changeFormat('rgb');

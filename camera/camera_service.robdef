@@ -10,7 +10,7 @@ struct DuckieImage
 	field uint8[] data
 end struct
 
-object Duckiebot_Camera
+object Camera
 
 property double framerate
 property int32[] resolution

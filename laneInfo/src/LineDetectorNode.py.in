@@ -90,7 +90,7 @@ class LineDetectorNode(Configurable):
         
         # Find the image service and connect to the pipe
         try:
-            cam_url = 'rr+local:///?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera'
+            cam_url = 'rr+local:///?nodename=DuckiebotServer.Camera&service=Camera'
             self.duckie_cam = RRN.ConnectService(cam_url)
         except Exception as e:
             print "[%s] WARNING: Could not connect to Camera Interface at %s"%(self.node_name, cam_url)

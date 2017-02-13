@@ -28,7 +28,7 @@ virtual RR_SHARED_PTR<RobotRaconteur::MessageElementStructure> PackStructure(RR_
 virtual RR_SHARED_PTR<RobotRaconteur::RRStructure> UnpackStructure(RR_SHARED_PTR<RobotRaconteur::MessageElementStructure> m);
 };
 
-class async_Duckiebot_Camera
+class async_Camera
 {
 public:
 virtual void async_get_framerate(boost::function<void (double,RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) > rr_handler, int32_t rr_timeout=RR_TIMEOUT_INFINITE) = 0;
@@ -37,11 +37,11 @@ virtual void async_set_framerate(double value,boost::function<void (RR_SHARED_PT
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual double async_get_framerate(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    return RobotRaconteur::detail::async_wrap_for_spawn<double >(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (double, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Duckiebot_Camera::async_get_framerate, this, _1, rr_timeout), rr_yield);
+    return RobotRaconteur::detail::async_wrap_for_spawn<double >(boost::bind((void (async_Camera::*)(boost::function<void (double, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Camera::async_get_framerate, this, _1, rr_timeout), rr_yield);
 }
 virtual void async_set_framerate(double value, boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(double, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Duckiebot_Camera::async_set_framerate, this, boost::ref(value), _1, rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(double, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Camera::async_set_framerate, this, boost::ref(value), _1, rr_timeout), rr_yield);
 }
 #endif
 
@@ -51,11 +51,11 @@ virtual void async_set_resolution(RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t 
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > async_get_resolution(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    return RobotRaconteur::detail::async_wrap_for_spawn<RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > >(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > >, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Duckiebot_Camera::async_get_resolution, this, _1, rr_timeout), rr_yield);
+    return RobotRaconteur::detail::async_wrap_for_spawn<RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > >(boost::bind((void (async_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > >, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Camera::async_get_resolution, this, _1, rr_timeout), rr_yield);
 }
 virtual void async_set_resolution(RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > value, boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > >, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Duckiebot_Camera::async_set_resolution, this, boost::ref(value), _1, rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > >, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Camera::async_set_resolution, this, boost::ref(value), _1, rr_timeout), rr_yield);
 }
 #endif
 
@@ -65,11 +65,11 @@ virtual void async_set_format(std::string value,boost::function<void (RR_SHARED_
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual std::string async_get_format(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    return RobotRaconteur::detail::async_wrap_for_spawn<std::string >(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (std::string, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Duckiebot_Camera::async_get_format, this, _1, rr_timeout), rr_yield);
+    return RobotRaconteur::detail::async_wrap_for_spawn<std::string >(boost::bind((void (async_Camera::*)(boost::function<void (std::string, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Camera::async_get_format, this, _1, rr_timeout), rr_yield);
 }
 virtual void async_set_format(std::string value, boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(std::string, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Duckiebot_Camera::async_set_format, this, boost::ref(value), _1, rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(std::string, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Camera::async_set_format, this, boost::ref(value), _1, rr_timeout), rr_yield);
 }
 #endif
 
@@ -79,11 +79,11 @@ virtual void async_set_capturing(uint8_t value,boost::function<void (RR_SHARED_P
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual uint8_t async_get_capturing(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    return RobotRaconteur::detail::async_wrap_for_spawn<uint8_t >(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (uint8_t, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Duckiebot_Camera::async_get_capturing, this, _1, rr_timeout), rr_yield);
+    return RobotRaconteur::detail::async_wrap_for_spawn<uint8_t >(boost::bind((void (async_Camera::*)(boost::function<void (uint8_t, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>) >, int32_t))&async_Camera::async_get_capturing, this, _1, rr_timeout), rr_yield);
 }
 virtual void async_set_capturing(uint8_t value, boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(uint8_t, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Duckiebot_Camera::async_set_capturing, this, boost::ref(value), _1, rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(uint8_t, boost::function<void(RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>, int32_t))&async_Camera::async_set_capturing, this, boost::ref(value), _1, rr_timeout), rr_yield);
 }
 #endif
 
@@ -92,7 +92,7 @@ virtual void async_startCapturing(boost::function<void (RR_SHARED_PTR<RobotRacon
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual void async_startCapturing(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Duckiebot_Camera::async_startCapturing, this, _1,rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Camera::async_startCapturing, this, _1,rr_timeout), rr_yield);
 }
 #endif
 
@@ -101,7 +101,7 @@ virtual void async_stopCapturing(boost::function<void (RR_SHARED_PTR<RobotRacont
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual void async_stopCapturing(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Duckiebot_Camera::async_stopCapturing, this, _1,rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Camera::async_stopCapturing, this, _1,rr_timeout), rr_yield);
 }
 #endif
 
@@ -110,7 +110,7 @@ virtual void async_captureImage(boost::function<void (RR_SHARED_PTR<DuckieImage 
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 RR_SHARED_PTR<DuckieImage > async_captureImage(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    return RobotRaconteur::detail::async_wrap_for_spawn<RR_SHARED_PTR<DuckieImage >>(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (RR_SHARED_PTR<DuckieImage >,RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Duckiebot_Camera::async_captureImage, this, _1,rr_timeout), rr_yield);
+    return RobotRaconteur::detail::async_wrap_for_spawn<RR_SHARED_PTR<DuckieImage >>(boost::bind((void (async_Camera::*)(boost::function<void (RR_SHARED_PTR<DuckieImage >,RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Camera::async_captureImage, this, _1,rr_timeout), rr_yield);
 }
 #endif
 
@@ -119,7 +119,7 @@ virtual void async_toggleFramerate(boost::function<void (RR_SHARED_PTR<RobotRaco
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual void async_toggleFramerate(boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Duckiebot_Camera::async_toggleFramerate, this, _1,rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Camera::async_toggleFramerate, this, _1,rr_timeout), rr_yield);
 }
 #endif
 
@@ -128,15 +128,15 @@ virtual void async_changeFormat(std::string format,boost::function<void (RR_SHAR
 #ifdef ROBOTRACONTEUR_USE_ASIO_SPAWN
 virtual void async_changeFormat(std::string format,boost::asio::yield_context rr_yield, int32_t rr_timeout=RR_TIMEOUT_INFINITE)
 {
-    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Duckiebot_Camera::*)(std::string,boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Duckiebot_Camera::async_changeFormat, this, boost::ref(format),_1,rr_timeout), rr_yield);
+    RobotRaconteur::detail::async_wrap_for_spawn_void(boost::bind((void (async_Camera::*)(std::string,boost::function<void (RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException>)>,int32_t))&async_Camera::async_changeFormat, this, boost::ref(format),_1,rr_timeout), rr_yield);
 }
 #endif
 
 };
-class Duckiebot_Camera_stub : public virtual Duckiebot_Camera, public virtual async_Duckiebot_Camera, public virtual RobotRaconteur::ServiceStub
+class Camera_stub : public virtual Camera, public virtual async_Camera, public virtual RobotRaconteur::ServiceStub
 {
 public:
-Duckiebot_Camera_stub(const std::string& path, RR_SHARED_PTR<RobotRaconteur::ClientContext> c);
+Camera_stub(const std::string& path, RR_SHARED_PTR<RobotRaconteur::ClientContext> c);
 
 virtual void RRInitStub();
 virtual double get_framerate();
@@ -229,7 +229,7 @@ virtual std::string RRType();
 };
 
 
-class Duckiebot_Camera_skel : public virtual RobotRaconteur::ServiceSkel
+class Camera_skel : public virtual RobotRaconteur::ServiceSkel
 {
 public:
 virtual void Init(const std::string& path, RR_SHARED_PTR<RobotRaconteur::RRObject> object, RR_SHARED_PTR<RobotRaconteur::ServerContext> context);
@@ -266,20 +266,20 @@ virtual RR_SHARED_PTR<void> GetCallbackFunction(uint32_t endpoint, const std::st
 virtual RR_SHARED_PTR<RobotRaconteur::MessageEntry> CallMemoryFunction(RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::Endpoint> e);
 
 virtual std::string GetObjectType();
-virtual RR_SHARED_PTR<Duckiebot_Interface::Duckiebot_Camera > get_obj();
+virtual RR_SHARED_PTR<Duckiebot_Interface::Camera > get_obj();
 
-virtual RR_SHARED_PTR<Duckiebot_Interface::async_Duckiebot_Camera > get_asyncobj();
+virtual RR_SHARED_PTR<Duckiebot_Interface::async_Camera > get_asyncobj();
 
 protected:
-static void rr_get_framerate(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, double value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_get_resolution(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_get_format(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, std::string value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_get_capturing(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, uint8_t value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_startCapturing(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_stopCapturing(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_captureImage(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, RR_SHARED_PTR<DuckieImage > ret, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_toggleFramerate(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
-static void rr_changeFormat(RR_WEAK_PTR<Duckiebot_Interface::Duckiebot_Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_get_framerate(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, double value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_get_resolution(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_get_format(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, std::string value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_get_capturing(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, uint8_t value, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_startCapturing(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_stopCapturing(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_captureImage(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, RR_SHARED_PTR<DuckieImage > ret, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_toggleFramerate(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
+static void rr_changeFormat(RR_WEAK_PTR<Duckiebot_Interface::Camera_skel> skel, RR_SHARED_PTR<RobotRaconteur::RobotRaconteurException> err, RR_SHARED_PTR<RobotRaconteur::MessageEntry> m, RR_SHARED_PTR<RobotRaconteur::ServerEndpoint> ep);
  public:
 protected:bool rr_InitPipeServersRun;
 bool rr_InitWireServersRun;

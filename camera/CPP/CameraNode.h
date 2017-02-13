@@ -14,7 +14,7 @@ using namespace boost;
 using namespace std;
 using namespace Duckiebot_Interface;
 
-class CameraNode : public Duckiebot_Camera, public boost::enable_shared_from_this<CameraNode>
+class CameraNode : public Camera, public boost::enable_shared_from_this<CameraNode>
 {
 	public:
 		// Constructor / Destructor

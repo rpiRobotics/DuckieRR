@@ -86,7 +86,7 @@ int main ( int argc,char **argv ) {
     boost::shared_ptr<CameraNode> camera_obj = boost::make_shared<CameraNode>();
 
     //Register the service
-    RobotRaconteurNode::s()->RegisterService("Duckiebot_Camera","Duckiebot_Interface",camera_obj);
+    RobotRaconteurNode::s()->RegisterService("Camera","Duckiebot_Interface",camera_obj);
 
 
     // Determine hostname
@@ -105,11 +105,11 @@ int main ( int argc,char **argv ) {
     }
     // Print connection messages
     cout << "Service started, connect via one of the following:" << endl;
-    cout << "rr+local:///?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera" << endl;
-    cout << "rr+tcp://localhost:" << port <<"/?service=Duckiebot_Camera" << endl;
-    cout << "rr+tcp://localhost:" << port << "/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera" << endl;
-    cout << "rr+tcp://" << hostname << ".local:" << port << "/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera" << endl;
-    cout << "rr+tcp://" << ip << ":" << port << "/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera" << endl;
+    cout << "rr+local:///?nodename=DuckiebotServer.Camera&service=Camera" << endl;
+    cout << "rr+tcp://localhost:" << port <<"/?service=Camera" << endl;
+    cout << "rr+tcp://localhost:" << port << "/?nodename=DuckiebotServer.Camera&service=Camera" << endl;
+    cout << "rr+tcp://" << hostname << ".local:" << port << "/?nodename=DuckiebotServer.Camera&service=Camera" << endl;
+    cout << "rr+tcp://" << ip << ":" << port << "/?nodename=DuckiebotServer.Camera&service=Camera" << endl;
     
     // Register Signal Handler to catch interrupts / exit
     signal(SIGINT, signalHandler);

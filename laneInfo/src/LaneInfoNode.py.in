@@ -81,7 +81,7 @@ class LaneInfoNode(Configurable):
             
             # try connecting to the drive service so we can determine the current velocity
             try:
-                drive_url = 'rr+local:///?nodename=DuckiebotServer.Drive&service=Duckiebot'
+                drive_url = 'rr+local:///?nodename=DuckiebotServer.Drive&service=Drive'
                 self.drive = RRN.ConnectService(drive_url)
             except Exception as e:
                 print "[%s] WARNING: Could not connect to Drive Interface at %s"%(self.node_name, drive_url)
@@ -375,10 +375,10 @@ if __name__ == '__main__':
 
     print "Service started, connect via the following:"
     print "rr+local:///?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"
-    print "rr+tcp://localhost:%s/?service=Duckiebot"%(port)
-    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
-    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(socket.gethostname(), port)
-    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
+    print "rr+tcp://localhost:%s/?service=LaneInfo"%(port)
+    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"%(port)
+    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"%(socket.gethostname(), port)
+    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"%(port)
 
     try:
         while True:

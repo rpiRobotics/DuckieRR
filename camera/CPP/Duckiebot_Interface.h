@@ -8,7 +8,7 @@ namespace Duckiebot_Interface
 {
 
 class DuckieImage;
-class Duckiebot_Camera;
+class Camera;
 
 class DuckieImage : public RobotRaconteur::RRStructure {
 public:
@@ -20,7 +20,7 @@ RR_SHARED_PTR<RobotRaconteur::RRArray<uint8_t > > data;
 virtual std::string RRType() {return "Duckiebot_Interface.DuckieImage";  }
 };
 
-class Duckiebot_Camera : public virtual RobotRaconteur::RRObject
+class Camera : public virtual RobotRaconteur::RRObject
 {
 public:
 virtual double get_framerate()=0;
@@ -48,7 +48,7 @@ virtual void changeFormat(std::string format)=0;
 virtual RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > get_ImageStream()=0;
 virtual void set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > value)=0;
 
-virtual std::string RRType() {return "Duckiebot_Interface.Duckiebot_Camera";  }
+virtual std::string RRType() {return "Duckiebot_Interface.Camera";  }
 };
 
 }

@@ -15,7 +15,7 @@ service Duckiebot_Interface
 
 option version 0.8
 
-object Duckiebot
+object Drive
 
 property uint8 eStop
 property double gain
@@ -215,14 +215,14 @@ if __name__ == '__main__':
     RRN.RegisterServiceType(drive_servicedef)
 
     # Register the service
-    RRN.RegisterService("Duckiebot","Duckiebot_Interface.Duckiebot", driver_obj)
+    RRN.RegisterService("Drive","Duckiebot_Interface.Drive", driver_obj)
 
     print "Service started, connect via one of the following:"
-    print "rr+local:///?nodename=DuckiebotServer.Drive&service=Duckiebot"
-    print "rr+tcp://localhost:%s/?service=Duckiebot"%(port)
-    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
-    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(socket.gethostname(), port)
-    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Drive&service=Duckiebot"%(port)
+    print "rr+local:///?nodename=DuckiebotServer.Drive&service=Drive"
+    print "rr+tcp://localhost:%s/?service=Drive"%(port)
+    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Drive&service=Drive"%(port)
+    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Drive&service=Drive"%(socket.gethostname(), port)
+    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Drive&service=Drive"%(port)
     try:
         while True:
             pass

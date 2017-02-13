@@ -1,6 +1,6 @@
 % Duckiebot Matlab Client Example
 
-duckie = RobotRaconteur.ConnectService('rr+tcp://duckiebot1.local:1234/?service=Duckiebot')
+duckie = RobotRaconteur.ConnectService('rr+tcp://duckiebot1.local:1234/?service=Drive')
 	
 disp('Set the gain and trim values (determined experimentally so that duckie drives straight)')
 duckie.gain = 5.0;
@@ -40,7 +40,7 @@ pause(2);
 duckie.wheelCmd(0,0);
 
 %%
-cam = RobotRaconteur.ConnectService('rr+tcp://duckiebot1.local:1235/?service=Duckiebot_Camera')
+cam = RobotRaconteur.ConnectService('rr+tcp://duckiebot1.local:1235/?service=Camera')
 
 % set the format
 cam.changeFormat('rgb');
