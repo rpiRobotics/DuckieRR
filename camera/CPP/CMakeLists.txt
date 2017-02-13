@@ -46,7 +46,7 @@ endif()
 
 # The executable and link libraries
 SET (CMAKE_CXX_FLAGS "-std=c++11")
-add_executable (camera_interface camera_interface.cpp camera_impl.cpp Duckiebot_Interface_stubskel.cpp)
+add_executable (CameraNode main.cpp CameraNode.cpp Duckiebot_Interface_stubskel.cpp)
 #add_dependencies(camera_interface Duckiebot_Interface_stubskel.cpp)
 
-target_link_libraries (camera_interface ${raspicam_LIBS} ${RobotRaconteur_LIBRARY} ${Boost_LIBRARIES} ${RobotRaconteur_EXTRA_LIBRARIES})
+target_link_libraries (CameraNode ${raspicam_LIBS} ${RobotRaconteur_LIBRARY} ${Boost_LIBRARIES} ${RobotRaconteur_EXTRA_LIBRARIES})

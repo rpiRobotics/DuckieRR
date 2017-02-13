@@ -1,7 +1,7 @@
 
 /**
 */
-#include "camera_impl.h" // This imports RR as well
+#include "CameraNode.h" // This imports RR as well
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>

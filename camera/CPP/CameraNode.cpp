@@ -1,4 +1,4 @@
-#include "camera_impl.h"
+#include "CameraNode.h"
 #include <boost/thread/thread.hpp>
 #include <boost/chrono.hpp>
 
