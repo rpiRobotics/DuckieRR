@@ -4,7 +4,7 @@ __all__ = ['import_name','instantiate']
 
 SemanticMistake = ValueError
 
-def instantiate(function_name, parameters):
+def instantiate(function_name, parameters=None):
     try:
         function = import_name(function_name)
     except ValueError as e:
@@ -12,20 +12,30 @@ def instantiate(function_name, parameters):
         msg += indent('%s' % (e), '> ')
         raise SemanticMistake(msg)
 
-    try:
-        # XXX TypeError is too broad, we should bind the params explicitly
-        return function(**parameters)
-    except TypeError as e:
-        params = ', '.join(['%s=%r' % (k, v) for (k, v) in parameters.items()])
-        msg = ('instantiate(): Could not call function %r\n with params %s:' %
-               (function_name, params))
-        msg += '\n' + indent('%s\n%s' % (e, traceback.format_exc(e)), '> ')
-        
-        msg += '\n\n One reason this might be triggered is the presence of pyc files for files that were removed.'
-        msg += '\n\n Use this command to remove them:'
-        msg += '\n\n     make clean-pyc'
-        msg += '\n\n'
-        raise SemanticMistake(msg)
+    if parameters is None:
+        try:
+            return function()
+        except TypeError as e:
+            msg = ('instantiate(): Could not call function %r\n with no params.')%(function_name)
+            msg += '\n' + indent('%s\n%s'%(e, traceback.format_exc(e)), '> ')
+            msg += '\n\n If this function expects input arguments they must be supplied by keyword.'
+            msg += '\n\n'
+            raise SemanticMistake(msg)
+    else:
+        try:
+            # XXX TypeError is too broad, we should bind the params explicitly
+            return function(**parameters)
+        except TypeError as e:
+            params = ', '.join(['%s=%r' % (k, v) for (k, v) in parameters.items()])
+            msg = ('instantiate(): Could not call function %r\n with params %s:' %
+                   (function_name, params))
+            msg += '\n' + indent('%s\n%s' % (e, traceback.format_exc(e)), '> ')
+            
+            msg += '\n\n One reason this might be triggered is the presence of pyc files for files that were removed.'
+            msg += '\n\n Use this command to remove them:'
+            msg += '\n\n     make clean-pyc'
+            msg += '\n\n'
+            raise SemanticMistake(msg)
 
 
 def import_name(name):
