@@ -14,13 +14,13 @@ using namespace boost;
 using namespace std;
 using namespace Duckiebot_Interface;
 
-class Camera_impl : public Duckiebot_Camera, public boost::enable_shared_from_this<Camera_impl>
+class CameraNode : public Duckiebot_Camera, public boost::enable_shared_from_this<CameraNode>
 {
 	public:
 		// Constructor / Destructor
-		Camera_impl();
+		CameraNode();
 		void Shutdown();
-		~Camera_impl();
+		~CameraNode();
 
 		//properties
 		virtual double get_framerate();

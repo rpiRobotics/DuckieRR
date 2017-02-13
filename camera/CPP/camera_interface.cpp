@@ -83,7 +83,7 @@ int main ( int argc,char **argv ) {
     RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<Duckiebot_InterfaceFactory>());
 
     //Initialize the implementation object
-    boost::shared_ptr<Camera_impl> camera_obj = boost::make_shared<Camera_impl>();
+    boost::shared_ptr<CameraNode> camera_obj = boost::make_shared<CameraNode>();
 
     //Register the service
     RobotRaconteurNode::s()->RegisterService("Duckiebot_Camera","Duckiebot_Interface",camera_obj);

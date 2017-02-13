@@ -35,7 +35,7 @@ end object
 
 """
 
-class WheelsDriver_impl(object):
+class DriveNode(object):
     def __init__(self):
         self.nodeName = "drive"
         self.driver = DaguWheelsDriver()
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 
 
     # Initialize the object
-    driver_obj = WheelsDriver_impl()
+    driver_obj = DriveNode()
     
     # Register the service def
     RRN.RegisterServiceType(drive_servicedef)

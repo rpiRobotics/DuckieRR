@@ -13,7 +13,7 @@ import struct
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
 
-class Camera_impl(object):
+class CameraNode(object):
     def __init__(self):
         self.nodeName = "camera"
 
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     RRN.RegisterServiceType(camera_servicedef)
 
     # Initialize the object
-    camera_obj = Camera_impl()
+    camera_obj = CameraNode()
     
     # Register the service
     RRN.RegisterService("Duckiebot_Camera","Duckiebot_Interface.Duckiebot_Camera", camera_obj)

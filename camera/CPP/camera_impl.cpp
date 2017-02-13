@@ -2,7 +2,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/chrono.hpp>
 
-Camera_impl::Camera_impl(void){
+CameraNode::CameraNode(void){
 	
 	// Initialize Camera
 	camera = boost::make_shared<raspicam::RaspiCam>();
@@ -33,7 +33,7 @@ Camera_impl::Camera_impl(void){
     boost::this_thread::sleep(boost::posix_time::seconds(3) );
 }
 
-void Camera_impl::Shutdown(void){
+void CameraNode::Shutdown(void){
 	// release the camera
 	camera->release();
 	_is_shutdown = true;
@@ -42,47 +42,47 @@ void Camera_impl::Shutdown(void){
 
 }
 
-Camera_impl::~Camera_impl(void){
+CameraNode::~CameraNode(void){
 	if (!_is_shutdown) Shutdown();
 }
 
 /********************************
  *		Properties
  ********************************/
-double Camera_impl::get_framerate(){ return _framerate;}
-void Camera_impl::set_framerate(double value){throw runtime_error("Read only property");}
+double CameraNode::get_framerate(){ return _framerate;}
+void CameraNode::set_framerate(double value){throw runtime_error("Read only property");}
 
-RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > Camera_impl::get_resolution(){return _resolution;}
-void Camera_impl::set_resolution(RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > value){ throw runtime_error("Read only property");}
+RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > CameraNode::get_resolution(){return _resolution;}
+void CameraNode::set_resolution(RR_SHARED_PTR<RobotRaconteur::RRArray<int32_t > > value){ throw runtime_error("Read only property");}
 
-std::string Camera_impl::get_format(){return _format;}
-void Camera_impl::set_format(std::string value){throw runtime_error("Read only property");}
+std::string CameraNode::get_format(){return _format;}
+void CameraNode::set_format(std::string value){throw runtime_error("Read only property");}
 
-uint8_t Camera_impl::get_capturing(){
+uint8_t CameraNode::get_capturing(){
 	if (_capturing) return 1;
 	else return 0;
 }
-void Camera_impl::set_capturing(uint8_t value){throw runtime_error("Read only property");}
+void CameraNode::set_capturing(uint8_t value){throw runtime_error("Read only property");}
 
 /********************************
  *		Functions
  ********************************/
-void Camera_impl::startCapturing(){
+void CameraNode::startCapturing(){
 	if (_capturing) throw std::runtime_error("Already Capturing");
 	_capturing = true;
 	cout << "[" << _nodeName << "] Starting Capture" << endl;
 	
 	//Start a thread to capture and send frames
-	thread(boost::bind(&Camera_impl::_capture_threadfunc, shared_from_this()));
+	thread(boost::bind(&CameraNode::_capture_threadfunc, shared_from_this()));
 }
 
-void Camera_impl::stopCapturing(){
+void CameraNode::stopCapturing(){
 	if(!_capturing) throw std::runtime_error("Not Capturing");
 	cout << "[" << _nodeName << "] Stopping Capture" << endl;
 	_capturing = false;
 }
 
-RR_SHARED_PTR<DuckieImage > Camera_impl::captureImage(){
+RR_SHARED_PTR<DuckieImage > CameraNode::captureImage(){
 	recursive_mutex::scoped_lock lock(global_lock);
 
 	// capture a frame
@@ -94,14 +94,14 @@ RR_SHARED_PTR<DuckieImage > Camera_impl::captureImage(){
 	return _image;
 }
 
-void Camera_impl::toggleFramerate(){
+void CameraNode::toggleFramerate(){
 	if (_framerate != _framerate_high) _framerate = _framerate_high;
 	else _framerate = _framerate_low;
 
 	_update_framerate = true;
 }
 
-void Camera_impl::changeFormat(std::string format){
+void CameraNode::changeFormat(std::string format){
 	if (_capturing) throw std::runtime_error("Must stop capturing to change format.");
 	// release the camera so we can change the format.
 
@@ -134,16 +134,16 @@ void Camera_impl::changeFormat(std::string format){
 /********************************
  *		Pipe
  ********************************/
-RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > Camera_impl::get_ImageStream(){
+RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > CameraNode::get_ImageStream(){
 	return _imagestream;
 }
-void Camera_impl::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > value){
+void CameraNode::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > value){
 	_imagestream  = value;
-	_imagestream->SetPipeConnectCallback(boost::bind(&Camera_impl::_imagestream_pipeconnect,shared_from_this(), _1));
+	_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
 	// _1 is a placeholder that tells boost _imagestream_pipeconnect expects 1 additional arguement
 }
 
-void Camera_impl::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep){
+void CameraNode::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep){
 	recursive_mutex::scoped_lock lock(global_lock);
 
 	// Store the connected PipeEndpoint in nested maps by endpoint and index
@@ -153,10 +153,10 @@ void Camera_impl::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost:
 	map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > >& dict1=_imagestream_endpoints.at(pipe_ep->GetEndpoint());
 	dict1.insert(make_pair(pipe_ep->GetIndex(),pipe_ep));
 
-	pipe_ep->SetPipeEndpointClosedCallback(boost::bind(&Camera_impl::_imagestream_pipeclosed,shared_from_this(),_1));
+	pipe_ep->SetPipeEndpointClosedCallback(boost::bind(&CameraNode::_imagestream_pipeclosed,shared_from_this(),_1));
 }
 
-void Camera_impl::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep){
+void CameraNode::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep){
 	recursive_mutex::scoped_lock lock(global_lock);
 
 	try{
@@ -170,7 +170,7 @@ void Camera_impl::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::
 /********************************
  *		Private Functions
  ********************************/
-void Camera_impl::_capture_threadfunc(){
+void CameraNode::_capture_threadfunc(){
 	// Timimg for framerate
 	typedef boost::chrono::duration<double> dsec;
 	dsec framerate_delay = dsec(1./_framerate);

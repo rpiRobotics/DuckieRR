@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from duckie_utils.configurable import Configurable
 from duckie_utils.stats import Stats
 import numpy as np
 import time
@@ -40,15 +41,15 @@ object LaneInfo
 end object
 """
 
-class LaneInfo_impl(object):
+class LaneInfoNode(Configurable):
     """Lane Info node will return position in lane"""
-    def __init__(self, config_file=None):
+    def __init__(self, configuration):
         self.node_name = "laneInfo"
+
+        self.initializeParams(configuration)
 
         self.active = True
 
-        self.getParams(config_file)
-        
         # This may need to change...
         self.LDConsts = RRN.GetConstants("Duckiebot_Interface")
         
@@ -58,11 +59,6 @@ class LaneInfo_impl(object):
         self._lanePose = RRN.NewStructure("Duckiebot_Interface.LanePose")
         self._lanePose.d=self.mean_0[0]
         self._lanePose.phi=self.mean_0[1]
-
-        self.dwa = -(self.zero_val*self.l_peak**2 + self.zero_val*self.l_max**2 - self.l_max**2*self.peak_val - 2*self.zero_val*self.l_peak*self.l_max + 2*self.l_peak*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
-        self.dwb = (2*self.zero_val*self.l_peak**3 + self.zero_val*self.l_max**3 - self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak**2*self.l_max + 3*self.l_peak**2*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
-        self.dwc = -(self.zero_val*self.l_peak**3 + 2*self.zero_val*self.l_max**3 - 2*self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak*self.l_max**2 + 3*self.l_peak*self.l_max**2*self.peak_val)/(self.l_peak*self.l_max*(self.l_peak - self.l_max)**2)
-
 
         self.t_last_update = time.time()
         self.v_current = 0
@@ -117,50 +113,49 @@ class LaneInfo_impl(object):
         self.lineDetector.newSegments += self.processSegments
         
     
-    def getParams(self,config_file):
-        # load param files
-        with open('${DEFAULT_LANE_PARAMS}','r') as f:
-            self.default_params = yaml.load(f.read())
+    def initializeParams(self,configuration):
+        # load params
+        param_names = [
+            'mean_d_0',
+            'mean_phi_0',
+            'sigma_d_0',
+            'sigma_phi_0',
+            'delta_d',
+            'delta_phi',
+            'd_max',
+            'd_min',
+            'phi_min',
+            'phi_max',
+            'cov_v',
+            'cov_omega',
+            'linewidth_white',
+            'linewidth_yellow',
+            'lanewidth',
+            'min_max',
+            'use_min_segs',
+            'min_segs',
+            'use_max_segment_dist',
+            'max_segment_dist',
+            'use_distance_weighting',
+            'zero_val',
+            'l_peak',
+            'peak_val',
+            'l_max',
+            'use_propagation',
+            'sigma_d_mask',
+            'sigma_phi_mask'
+            ]
 
-        if config_file is not None:
-            with open(config_file, 'r') as f:
-                self.params = yaml.load(f.read())
-        else:
-            self.params = self.default_params
+        Configurable.__init__(self,param_names,configuration)
+        
+        self.mean_0 = [self.mean_d_0, self.mean_phi_0 ]
+        self.cov_0  = [ [self.sigma_d_0 , 0] , [0, self.sigma_phi_0] ]
+        
+        self.cov_mask = [self.sigma_d_mask , self.sigma_phi_mask]
 
-        self.mean_0 = [self.params["mean_d_0"], self.params["mean_phi_0"] ]
-        self.cov_0  = [ [self.params["sigma_d_0"] , 0] , [0, self.params["sigma_phi_0"] ] ]
-        self.delta_d     = self.params["delta_d"] # in meters
-        self.delta_phi   = self.params["delta_phi"] # in radians
-        self.d_max       = self.params["d_max"]
-        self.d_min       = self.params["d_min"]
-        self.phi_min     = self.params["phi_min"]
-        self.phi_max     = self.params["phi_max"]
-
-        self.cov_v       = self.params["cov_v"] # linear velocity "input"
-        self.cov_omega   = self.params["cov_omega"] # angular velocity "input"
-        self.linewidth_white = self.params["linewidth_white"]
-        self.linewidth_yellow = self.params["linewidth_yellow"]
-        self.lanewidth        = self.params["lanewidth"]
-        self.min_max = self.params["min_max"] # nats
-        # For use of distance weighting (dw) function
-        self.use_distance_weighting = self.params["use_distance_weighting"]
-        self.zero_val    = self.params["zero_val"]
-        self.l_peak      = self.params["l_peak"]
-        self.peak_val    = self.params["peak_val"]
-        self.l_max       = self.params["l_max"]
-
-        # For use of maximum segment distance
-        self.use_max_segment_dist = self.params["use_max_segment_dist"]
-        self.max_segment_dist = self.params["max_segment_dist"]
-
-        # For use of minimum segment count
-        self.use_min_segs = self.params["use_min_segs"]
-        self.min_segs = self.params["min_segs"]
-
-        # For propagation
-        self.use_propagation = self.params["use_propagation"]
-        self.cov_mask = [self.params["sigma_d_mask"] , self.params["sigma_phi_mask"]]
+        self.dwa = -(self.zero_val*self.l_peak**2 + self.zero_val*self.l_max**2 - self.l_max**2*self.peak_val - 2*self.zero_val*self.l_peak*self.l_max + 2*self.l_peak*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
+        self.dwb = (2*self.zero_val*self.l_peak**3 + self.zero_val*self.l_max**3 - self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak**2*self.l_max + 3*self.l_peak**2*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
+        self.dwc = -(self.zero_val*self.l_peak**3 + 2*self.zero_val*self.l_max**3 - 2*self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak*self.l_max**2 + 3*self.l_peak*self.l_max**2*self.peak_val)/(self.l_peak*self.l_max*(self.l_peak - self.l_max)**2)
 
     @property
     def lanePose(self):
@@ -368,7 +363,12 @@ if __name__ == '__main__':
     RRN.RegisterServiceType(laneInfo_servicedef)
 
     # Initialize the object
-    laneInfo_obj = LaneInfo_impl(args.config)
+    config_file = args.config
+    if config_file is None:
+        config_file = '${DEFAULT_LANE_PARAMS}'
+    with open(config_file,'r') as f:
+        configuration = yaml.load(f.read())
+    laneInfo_obj = LaneInfoNode(configuration)
 
     # Register the service
     RRN.RegisterService("LaneInfo","Duckiebot_Interface.LaneInfo",laneInfo_obj)
