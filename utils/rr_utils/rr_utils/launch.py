@@ -5,6 +5,10 @@ from duckie_utils.instantiate_utils import instantiate
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
 
+
+def FormatRobdefString(robdef):
+    return '|\n  ' + robdef.replace('\n', '\n  ').strip()
+
 def printConnectionMsg(node_name, obj_name, tcp_port):
     msg =  "%s service started, connect via one of the following:"%(obj_name)
     msg += "\nrr+local:///?nodename=%s&service=%s\n"%(node_name, obj_name)
@@ -24,6 +28,8 @@ def LaunchRRNode(node_name, robdef, objects, tcp_port=None):
     RRN.RegisterTransport(t1)
 
     if tcp_port is not None:
+        tcp_port = int(tcp_port)
+
         t2 = RR.TcpTransport()
         t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
             RR.IPNodeDiscoveryFlags_LINK_LOCAL |
@@ -33,6 +39,9 @@ def LaunchRRNode(node_name, robdef, objects, tcp_port=None):
         if (tcp_port == 0):
             tcp_port = t2.GetListenPort()
 
+    if not isinstance(robdef, str):
+        msg = 'Expecting robdef as a string, obtained %r'%robdef
+        raise ValueError(msg) 
     # check to see if the robdef is a file or the full string...
     if robdef.split('.')[-1] == 'robdef':
         with open(robdef, 'r') as f:

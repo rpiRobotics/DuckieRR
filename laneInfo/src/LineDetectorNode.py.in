@@ -3,6 +3,7 @@ from duckie_utils.configurable import Configurable
 from duckie_utils.instantiate_utils import instantiate
 from duckie_utils.image import DuckieImageToBGRMat
 from duckie_utils.stats import Stats
+from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
 import cv2
 import numpy as np
 import threading
@@ -50,7 +51,7 @@ object LineDetector
 end object
 """
 
-class LineDetectorNode(Configurable):
+class LineDetectorNode(Configurable,RRNodeInterface):
     """Line Detector Node will return detected lines."""
     def __init__(self, configuration):
         self.node_name = "lineDetector"
@@ -81,7 +82,7 @@ class LineDetectorNode(Configurable):
         c = self.detector
         assert isinstance(c,list) and len(c) == 2, c
 
-        print "[%s] new detector config: %s"%(self.node_name, str(c))
+        self.log("new detector config: %s"%(str(c)) )
 
         # instantiate it
         #   c[0] is the detector type -- e.g. line_detector.LineDetectorHSV
@@ -93,8 +94,8 @@ class LineDetectorNode(Configurable):
             cam_url = 'rr+local:///?nodename=DuckiebotServer.Camera&service=Camera'
             self.duckie_cam = RRN.ConnectService(cam_url)
         except Exception as e:
-            print "[%s] WARNING: Could not connect to Camera Interface at %s"%(self.node_name, cam_url)
-            print "[%s] will wait 5 seconds and try again..."
+            self.log("WARNING: Could not connect to Camera Interface at %s"%(cam_url))
+            self.log("will wait 5 seconds and try again...")
             time.sleep(5)
             try:
                 self.duckie_cam = RRN.ConnectService(cam_url)
@@ -122,8 +123,8 @@ class LineDetectorNode(Configurable):
     def intermittent_log(self,s):
         if not self.intermittent_log_now():
             return
-        msg = "[%s] %3d:%s"%(self.node_name, self.intermittent_counter, s)
-        print msg
+        msg = "%3d:%s"%(self.intermittent_counter, s)
+        self.log(msg)
 
     def _cbImage(self, pipe_ep):
         while (pipe_ep.Available > 0):
@@ -164,7 +165,7 @@ class LineDetectorNode(Configurable):
         try:
             image_cv = DuckieImageToBGRMat(image)
         except ValueError as e:
-            print "[%s] Could not decode image: %s"%(self.node_name, e)
+            self.log("Could not decode image: %s"%(e))
             return
 
         # resize and crop image
@@ -232,7 +233,7 @@ class LineDetectorNode(Configurable):
 
     def onShutdown(self):
         self.imstream.Close()
-        print "[%s] Shutdown."%(self.node_name)
+        self.log("Shutdown.")
 
 
 if __name__ == '__main__':
@@ -245,38 +246,22 @@ if __name__ == '__main__':
 
     args = parser.parse_args(sys.argv[1:])
 
-    # Enable NumPy
-    RRN.UseNumPy = True
-
-    # Create a local transport only
-    t1 = RR.LocalTransport()
-    t1.StartServerAsNodeName("DuckiebotServer.LineDetector")
-    RRN.RegisterTransport(t1)
-
-    # Register the service def
-    RRN.RegisterServiceType(lineDetector_servicedef)
-
-    # Initialize the object
     config_file = args.config
     if config_file is None:
         config_file = '${DEFAULT_LD_PARAMS}'
-    with open(config_file,'r') as f:
-        configuration = yaml.load(f.read())
-        
-    LD_obj = LineDetectorNode(configuration)
 
-    # Register the service
-    RRN.RegisterService("LineDetector","Duckiebot_Interface.LineDetector",LD_obj)
+    launch_file = """\
+node_name: Duckiebot.LineDetector
 
-    print "Service started, connect via the following:"
-    print "rr+local:///?nodename=DuckiebotServer.LineDetector&service=LineDetector"
+robdef: %s
 
-    try:
-        while True:
-            pass
-    except(KeyboardInterrupt, SystemExit):
-        LD_obj.onShutdown()
+objects:
+    LD:
+        name: LineDetector
+        class: LineDetectorNode.LineDetectorNode
+        configuration: %s 
 
-        # This must be here to prevent segfault
-        RRN.Shutdown()
-        sys.exit(0)
+    """%(FormatRobdefString(lineDetector_servicedef), config_file)
+    
+    launch_config = yaml.load(launch_file)
+    LaunchRRNode(**launch_config)

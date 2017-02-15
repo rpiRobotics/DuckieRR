@@ -2,20 +2,20 @@
 import sys
 import argparse
 import io
-import socket
 import numpy as np
 from picamera import PiCamera
 import threading, thread
 import traceback
 import time
 import struct
-
+import yaml
+from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
 
-class CameraNode(object):
+class CameraNode(RRNodeInterface):
     def __init__(self):
-        self.nodeName = "camera"
+        self.node_name = "camera"
 
         self.framerate_high = 30.0
         self.framerate_low = 15.0
@@ -48,7 +48,6 @@ class CameraNode(object):
         self._imagestream_endpoints = dict()
         self._imagestream_endpoints_lock = threading.RLock()
         self._capturing = False
-
         
 
     def toggleFramerate(self):
@@ -84,7 +83,7 @@ class CameraNode(object):
     def startCapturing(self):
         if (self._capturing):
             raise Exception('Already Capturing')
-        print "[%s] Starting Capture"%(self.nodeName)
+        self.log("Starting Capture")
         self._capturing = True
         t = threading.Thread(target=self._capture_threadfunc)
         t.start()
@@ -92,7 +91,7 @@ class CameraNode(object):
     def stopCapturing(self):
         if (not self._capturing):
             raise Exception('Not Capturing')
-        print "[%s] Stopping Capture"%(self.nodeName)
+        self.log("Stopping Capture")
         self._capturing = False
 
     def _capture_threadfunc(self):
@@ -102,10 +101,10 @@ class CameraNode(object):
                 self.camera.capture_sequence(gen, format=self._format, use_video_port=True)
             except StopIteration:
                 pass
-            print "[%s] Updating framerate"%(self.nodeName)
+            self.log("Updating framerate")
             self.camera.framerate = self._framerate
             self.update_framerate = False
-        print "[%s] Capture Ended."%(self.nodeName)
+        self.log("Capture Ended.")
 
     def _grabAndPublish(self,stream):
         while self._capturing and not self.update_framerate and not self.is_shutdown:
@@ -176,11 +175,11 @@ class CameraNode(object):
         else:
             return 0
 
-    def on_shutdown(self):
-        print "[%s] Closing Camera."%(self.nodeName)
+    def onShutdown(self):
+        self.log("Closing Camera.")
         self.camera.close()
         self.is_shutdown = True
-        print "[%s] Shutdown."%(self.nodeName)      
+        self.log("Shutdown.")
 
 if __name__ == '__main__':
     # Parse command line arguments
@@ -197,50 +196,20 @@ if __name__ == '__main__':
 
     #veh = args.veh
     
-    # Enable Numpy
-    RRN.UseNumPy = True
+    launch_file="""\
+node_name: Duckiebot.Camera
 
-    # Create Local Transport, start server as name, and register it
-    t1 = RR.LocalTransport()
-    t1.StartServerAsNodeName("DuckiebotServer.Camera")
-    RRN.RegisterTransport(t1)
+robdef: ${CAMERA_ROBDEF}
 
-    # Create TCP Transport, register it, and start the server  
-    t2 = RR.TcpTransport()
-    t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
-            RR.IPNodeDiscoveryFlags_LINK_LOCAL |
-            RR.IPNodeDiscoveryFlags_SITE_LOCAL)
+objects:
+    Camera:
+        name: Camera
+        class: CameraNode.CameraNode
+        configuration: ~
 
-    RRN.RegisterTransport(t2)
-
-    port = args.port
-    t2.StartServer(port)
-    if (port == 0):
-        port = t2.GetListenPort()
-
-    # Register the service def
-    with open('${CAMERA_ROBDEF}', 'r') as f:
-        service_def = f.read()
-    RRN.RegisterServiceType(camera_servicedef)
-
-    # Initialize the object
-    camera_obj = CameraNode()
+tcp_port: %d
+    """%(FormatRobdefString(camera_servicedef), args.port)
     
-    # Register the service
-    RRN.RegisterService("Duckiebot_Camera","Duckiebot_Interface.Duckiebot_Camera", camera_obj)
+    launch_config = yaml.load(launch_file)
 
-    print "Service started, connect via one of the following:"
-    print "rr+local:///?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"
-    print "rr+tcp://localhost:%s/?service=Duckiebot_Camera"%(port)
-    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(port)
-    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(socket.gethostname(), port)
-    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Camera&service=Duckiebot_Camera"%(port)
-    try:
-        while True:
-            pass
-    except (KeyboardInterrupt,SystemExit):
-        camera_obj.on_shutdown()
-        
-        # This must be here to prevent segfault
-        RRN.Shutdown()
-        sys.exit(0)
+    LaunchRRNode(**launch_config)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from dagu_car.dagu_wheels_driver import DaguWheelsDriver
-from rr_utils import (RRNodeInterface, LaunchRRNode)
+from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
 import sys
 import argparse
 import yaml
@@ -187,11 +187,10 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
     #veh = args.veh
     
-    launch_file = """
+    launch_file = """\
 node_name: Duckiebot.Drive
 
-robdef: |
-%s
+robdef: %s
 
 objects:
     Drive:
@@ -200,7 +199,7 @@ objects:
         configuration: ~
 
 tcp_port: %d
-    """%(drive_servicedef.replace('\n','\n  '), args.port)
+    """%(FormatRobdefString(drive_servicedef), args.port)
     launch_config = yaml.load(launch_file)
     
     LaunchRRNode(**launch_config)

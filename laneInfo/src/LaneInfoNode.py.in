@@ -8,8 +8,8 @@ import sys, argparse
 from math import floor, atan2, pi, cos, sin, sqrt
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import multivariate_normal, entropy
-import socket
 
+from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
 
@@ -41,7 +41,7 @@ object LaneInfo
 end object
 """
 
-class LaneInfoNode(Configurable):
+class LaneInfoNode(Configurable,RRNodeInterface):
     """Lane Info node will return position in lane"""
     def __init__(self, configuration):
         self.node_name = "laneInfo"
@@ -84,8 +84,8 @@ class LaneInfoNode(Configurable):
                 drive_url = 'rr+local:///?nodename=DuckiebotServer.Drive&service=Drive'
                 self.drive = RRN.ConnectService(drive_url)
             except Exception as e:
-                print "[%s] WARNING: Could not connect to Drive Interface at %s"%(self.node_name, drive_url)
-                print "[%s] will wait 5 seconds and try again..."
+                self.log("WARNING: Could not connect to Drive Interface at %s"%(drive_url))
+                self.log("will wait 5 seconds and try again...")
                 time.sleep(5)
                 try:
                     self.drive = RRN.ConnectService(lineDetect_url)
@@ -99,8 +99,8 @@ class LaneInfoNode(Configurable):
             lineDetect_url = 'rr+local:///?nodename=DuckiebotServer.LineDetector&service=LineDetector'
             self.lineDetector = RRN.ConnectService(lineDetect_url)
         except Exception as e:
-            print "[%s] WARNING: Could not connect to Line Detector Interface at %s"%(self.node_name, lineDetect_url)
-            print "[%s] will wait 5 seconds and try again..."%(self.node_name)
+            self.log("WARNING: Could not connect to Line Detector Interface at %s"%(lineDetect_url))
+            self.log("will wait 5 seconds and try again...")
             time.sleep(5)
             try:
                 self.lineDetector = RRN.ConnectService(lineDetect_url)
@@ -167,8 +167,8 @@ class LaneInfoNode(Configurable):
     def intermittent_log(self,s):
         if not self.intermittent_log_now():
             return
-        msg = "[%s] %3d:%s"%(self.node_name, self.intermittent_counter, s)
-        print msg
+        msg = "%3d:%s"%(self.intermittent_counter, s)
+        self.log(msg)
 
     def processSegments(self,segment_list):
         """
@@ -323,7 +323,7 @@ For more info on algorithm and parameters please refer to the google doc:
         return sqrt(x_c**2 + y_c**2)
 
     def onShutdown(self):
-        print "[%s] Shutdown."%(self.node_name)
+        self.log("Shutdown.")
 
 
 if __name__ == '__main__':
@@ -339,53 +339,24 @@ if __name__ == '__main__':
 
     args = parser.parse_args(sys.argv[1:])
 
-    # Enable NumPy
-    RRN.UseNumPy = True
-
-    # Create a local transport
-    t1 = RR.LocalTransport()
-    t1.StartServerAsNodeName("DuckiebotServer.LaneInfo")
-    RRN.RegisterTransport(t1)
-
-    # Create TCP Transport, register it, and start the server  
-    t2 = RR.TcpTransport()
-    t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
-            RR.IPNodeDiscoveryFlags_LINK_LOCAL |
-            RR.IPNodeDiscoveryFlags_SITE_LOCAL)
-    RRN.RegisterTransport(t2)
-
-    port = args.port
-    t2.StartServer(port)
-    if (port == 0):
-        port = t2.GetListenPort()
-
-    # Register the service def
-    RRN.RegisterServiceType(laneInfo_servicedef)
-
-    # Initialize the object
     config_file = args.config
     if config_file is None:
         config_file = '${DEFAULT_LANE_PARAMS}'
-    with open(config_file,'r') as f:
-        configuration = yaml.load(f.read())
-    laneInfo_obj = LaneInfoNode(configuration)
 
-    # Register the service
-    RRN.RegisterService("LaneInfo","Duckiebot_Interface.LaneInfo",laneInfo_obj)
+    launch_file="""\
+node_name: Duckiebot.LaneInfo
 
-    print "Service started, connect via the following:"
-    print "rr+local:///?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"
-    print "rr+tcp://localhost:%s/?service=LaneInfo"%(port)
-    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"%(port)
-    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"%(socket.gethostname(), port)
-    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.LaneInfo&service=LaneInfo"%(port)
+robdef: %s
 
-    try:
-        while True:
-            pass
-    except(KeyboardInterrupt, SystemExit):
-        laneInfo_obj.onShutdown()
+objects:
+    Lane:
+        name: LaneInfo
+        class: LaneInfoNode.LaneInfoNode
+        configuration: %s
 
-        # This must be here to prevent segfault
-        RRN.Shutdown()
-        sys.exit(0)
+tcp_port: %d
+    """%(FormatRobdefString(laneInfo_servicedef), config_file, args.port)
+
+    launch_config = yaml.load(launch_file)
+
+    LaunchRRNode(**launch_config)
