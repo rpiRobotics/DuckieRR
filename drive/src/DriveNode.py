@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from dagu_car.dagu_wheels_driver import DaguWheelsDriver
+from rr_utils import (RRNodeInterface, LaunchRRNode)
 import sys
 import argparse
+import yaml
 import numpy as np
-import socket
 import RobotRaconteur as RR
 
 RRN = RR.RobotRaconteurNode.s
@@ -35,7 +36,7 @@ end object
 
 """
 
-class DriveNode(object):
+class DriveNode(RRNodeInterface):
     def __init__(self):
         self.nodeName = "drive"
         self.driver = DaguWheelsDriver()
@@ -167,7 +168,7 @@ class DriveNode(object):
             self._limit = max(min(value,self.limit_max),self.limit_min)
 
         
-    def on_shutdown(self):
+    def onShutdown(self):
         self.driver.setWheelsSpeed(left=0.0, right=0.0)
         print "[%s] Shutting Down"%(self.nodeName)
 
@@ -186,49 +187,21 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
     #veh = args.veh
     
-    # Enable Numpy
-    RRN.UseNumPy = True # NECESSARY?
+    launch_file = """
+    node_name: Duckiebot.Drive
 
-    # Create Local Transport, start server as name, and register it
-    t1 = RR.LocalTransport()
-    t1.StartServerAsNodeName("DuckiebotServer.Drive")
-    RRN.RegisterTransport(t1)
+    robdef: |
+        %s
 
-    # Create TCP Transport, register it, and start the server  
-    t2 = RR.TcpTransport()
-    t2.EnableNodeAnnounce(RR.IPNodeDiscoveryFlags_NODE_LOCAL | 
-            RR.IPNodeDiscoveryFlags_LINK_LOCAL |
-            RR.IPNodeDiscoveryFlags_SITE_LOCAL)
+    objects:
+        Drive:
+            name: Drive
+            class: DriveNode
+            configuration: ~
 
-    RRN.RegisterTransport(t2)
-
-    port = args.port
-    t2.StartServer(port)
-    if (port == 0):
-        port = t2.GetListenPort()
-
-
-    # Initialize the object
-    driver_obj = DriveNode()
+    tcp_port: %d
+    """%(drive_servicedef, args.port)
+    launch_config = yaml.load(launch_file)
     
-    # Register the service def
-    RRN.RegisterServiceType(drive_servicedef)
-
-    # Register the service
-    RRN.RegisterService("Drive","Duckiebot_Interface.Drive", driver_obj)
-
-    print "Service started, connect via one of the following:"
-    print "rr+local:///?nodename=DuckiebotServer.Drive&service=Drive"
-    print "rr+tcp://localhost:%s/?service=Drive"%(port)
-    print "rr+tcp://localhost:%s/?nodename=DuckiebotServer.Drive&service=Drive"%(port)
-    print "rr+tcp://%s.local:%s/?nodename=DuckiebotServer.Drive&service=Drive"%(socket.gethostname(), port)
-    print "rr+tcp://<IP_ADDRESS>:%s/?nodename=DuckiebotServer.Drive&service=Drive"%(port)
-    try:
-        while True:
-            pass
-    except (KeyboardInterrupt,SystemExit):
-        driver_obj.on_shutdown()
-        
-        # This must be here to prevent segfault
-        RRN.Shutdown()
-        sys.exit(0)
+    LaunchRRNode(**launch_config)
+    
