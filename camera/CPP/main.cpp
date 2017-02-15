@@ -65,7 +65,7 @@ int main ( int argc,char **argv ) {
 
     //Initialize the local transport
     boost::shared_ptr<LocalTransport> t1 = boost::make_shared<LocalTransport>();
-    t1->StartServerAsNodeName("DuckiebotServer.Camera");
+    t1->StartServerAsNodeName("Duckiebot.Camera");
     RobotRaconteurNode::s()->RegisterTransport(t1);
 
     //Create TCP transport, register it, and start the service
@@ -105,11 +105,11 @@ int main ( int argc,char **argv ) {
     }
     // Print connection messages
     cout << "Service started, connect via one of the following:" << endl;
-    cout << "rr+local:///?nodename=DuckiebotServer.Camera&service=Camera" << endl;
+    cout << "rr+local:///?nodename=Duckiebot.Camera&service=Camera" << endl;
     cout << "rr+tcp://localhost:" << port <<"/?service=Camera" << endl;
-    cout << "rr+tcp://localhost:" << port << "/?nodename=DuckiebotServer.Camera&service=Camera" << endl;
-    cout << "rr+tcp://" << hostname << ".local:" << port << "/?nodename=DuckiebotServer.Camera&service=Camera" << endl;
-    cout << "rr+tcp://" << ip << ":" << port << "/?nodename=DuckiebotServer.Camera&service=Camera" << endl;
+    cout << "rr+tcp://localhost:" << port << "/?nodename=Duckiebot.Camera&service=Camera" << endl;
+    cout << "rr+tcp://" << hostname << ".local:" << port << "/?nodename=Duckiebot.Camera&service=Camera" << endl;
+    cout << "rr+tcp://" << ip << ":" << port << "/?nodename=Duckiebot.Camera&service=Camera" << endl;
     
     // Register Signal Handler to catch interrupts / exit
     signal(SIGINT, signalHandler);
