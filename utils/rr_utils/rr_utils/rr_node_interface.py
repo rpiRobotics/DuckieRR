@@ -34,5 +34,5 @@ class RRNodeInterface():
     def onShutdown(self):
         pass
 
-    log(self,msg):
+    def log(self,msg):
         print "[%s] %s"%(node_name,msg)

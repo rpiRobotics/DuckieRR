@@ -42,8 +42,10 @@ def LaunchRRNode(node_name, robdef, objects, tcp_port=None):
     # extract info about the service
     service_name = None
     defined_objects = []
-    lines = service_def.split('\n')
+    lines = service_def.splitlines()
     for line in lines:
+        if line == '':
+            continue
         if line[0] == '#': # comment character
             continue
         tokens = line.split() # any white space is removed

@@ -191,7 +191,7 @@ if __name__ == '__main__':
     node_name: Duckiebot.Drive
 
     robdef: |
-        %s
+    %s
 
     objects:
         Drive:
@@ -200,7 +200,7 @@ if __name__ == '__main__':
             configuration: ~
 
     tcp_port: %d
-    """%(drive_servicedef, args.port)
+    """%(drive_servicedef.replace('\n','\n  '), args.port)
     launch_config = yaml.load(launch_file)
     
     LaunchRRNode(**launch_config)
