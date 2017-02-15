@@ -98,9 +98,9 @@ class DriveNode(RRNodeInterface):
     def toggleEStop(self):
         self._estop = not self._estop
         if self._estop:
-            print "[%s] Emergency Stop Activated"%(self.nodeName)
+            self.log("Emergency Stop Activated")
         else:
-            print "[%s] Emergency Stop Released"%(self.nodeName)
+            self.log("Emergency Stop Released")
 
     def resetParams(self):
         self._gain = self.default_params['gain']
@@ -170,7 +170,7 @@ class DriveNode(RRNodeInterface):
         
     def onShutdown(self):
         self.driver.setWheelsSpeed(left=0.0, right=0.0)
-        print "[%s] Shutting Down"%(self.nodeName)
+        self.log("Shutting Down")
 
 
 if __name__ == '__main__':
@@ -188,18 +188,18 @@ if __name__ == '__main__':
     #veh = args.veh
     
     launch_file = """
-    node_name: Duckiebot.Drive
+node_name: Duckiebot.Drive
 
-    robdef: |
-    %s
+robdef: |
+%s
 
-    objects:
-        Drive:
-            name: Drive
-            class: DriveNode
-            configuration: ~
+objects:
+    Drive:
+        name: Drive
+        class: DriveNode.DriveNode
+        configuration: ~
 
-    tcp_port: %d
+tcp_port: %d
     """%(drive_servicedef.replace('\n','\n  '), args.port)
     launch_config = yaml.load(launch_file)
     

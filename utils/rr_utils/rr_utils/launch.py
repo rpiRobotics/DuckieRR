@@ -13,6 +13,7 @@ def printConnectionMsg(node_name, obj_name, tcp_port):
         msg += "\nrr+tcp://localhost:%s/?nodename=%s&service=%s"%(tcp_port,node_name,obj_name)
         msg += "\nrr+tcp://%s.local:%s/?nodename=%s&service=%s"%(socket.gethostname(), tcp_port, node_name, obj_name)
         msg += "\nrr+tcp://<IP_ADDRESS>:%s/?nodename=%s&service=%s"%(tcp_port, node_name,obj_name)
+    print msg
 
 def LaunchRRNode(node_name, robdef, objects, tcp_port=None):
     RRN.UseNumpy = True
