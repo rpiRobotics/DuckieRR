@@ -98,6 +98,7 @@ class DriveNode(RRNodeInterface):
     def toggleEStop(self):
         self._estop = not self._estop
         if self._estop:
+            self.driver.setWheelsSpeed(left=0.0, right=0.0)
             self.log("Emergency Stop Activated")
         else:
             self.log("Emergency Stop Released")

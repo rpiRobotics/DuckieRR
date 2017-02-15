@@ -58,6 +58,7 @@ if __name__ == '__main__':
     print "Toggle the EStop"
     duckie.toggleEStop() # stop with the eStop
     print "Duckie should have stopped"
+    raw_input('Did the duckie stop? (Press enter to continue)')
 
     print "Try to move again..."
     duckie.wheelCmd(-1.0,1.0)
