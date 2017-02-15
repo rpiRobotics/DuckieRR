@@ -38,7 +38,7 @@ end object
 
 class DriveNode(RRNodeInterface):
     def __init__(self):
-        self.nodeName = "drive"
+        self.node_name = "drive"
         self.driver = DaguWheelsDriver()
 
         self.default_params = {'gain':1.0, 

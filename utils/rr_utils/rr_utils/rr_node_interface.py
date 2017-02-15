@@ -35,4 +35,4 @@ class RRNodeInterface():
         pass
 
     def log(self,msg):
-        print "[%s] %s"%(node_name,msg)
+        print "[%s] %s"%(self.node_name,msg)
