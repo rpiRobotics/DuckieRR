@@ -2,23 +2,15 @@
 
 #include <RobotRaconteur.h>
 #include <boost/signals2.hpp>
+#include "Duckiebot.h"
 #pragma once
 
-namespace Duckiebot_Interface
+namespace Duckiebot
+{
+namespace Camera
 {
 
-class DuckieImage;
 class Camera;
-
-class DuckieImage : public RobotRaconteur::RRStructure {
-public:
-std::string format;
-int32_t width;
-int32_t height;
-RR_SHARED_PTR<RobotRaconteur::RRArray<uint8_t > > data;
-
-virtual std::string RRType() {return "Duckiebot_Interface.DuckieImage";  }
-};
 
 class Camera : public virtual RobotRaconteur::RRObject
 {
@@ -39,17 +31,18 @@ virtual void startCapturing()=0;
 
 virtual void stopCapturing()=0;
 
-virtual RR_SHARED_PTR<DuckieImage > captureImage()=0;
+virtual RR_SHARED_PTR<Duckiebot::Image > captureImage()=0;
 
 virtual void toggleFramerate()=0;
 
 virtual void changeFormat(std::string format)=0;
 
-virtual RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > get_ImageStream()=0;
-virtual void set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > value)=0;
+virtual RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Duckiebot::Image > > > get_ImageStream()=0;
+virtual void set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Duckiebot::Image > > > value)=0;
 
-virtual std::string RRType() {return "Duckiebot_Interface.Camera";  }
+virtual std::string RRType() {return "Duckiebot.Camera.Camera";  }
 };
 
+}
 }
 

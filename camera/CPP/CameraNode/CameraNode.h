@@ -1,8 +1,8 @@
 /*Duckiebot Interface Implementation*/
 
 #include <RobotRaconteur.h>
-#include "Duckiebot_Interface.h"
-#include "Duckiebot_Interface_stubskel.h"
+#include "Duckiebot__Camera.h"
+#include "Duckiebot__Camera_stubskel.h"
 #include <boost/enable_shared_from_this.hpp>
 
 #include <raspicam/raspicam.h> 
@@ -12,9 +12,9 @@
 using namespace RobotRaconteur;
 using namespace boost;
 using namespace std;
-using namespace Duckiebot_Interface;
+using namespace Duckiebot;
 
-class CameraNode : public Camera, public boost::enable_shared_from_this<CameraNode>
+class CameraNode : public Camera::Camera, public boost::enable_shared_from_this<CameraNode>
 {
 	public:
 		// Constructor / Destructor
@@ -40,14 +40,14 @@ class CameraNode : public Camera, public boost::enable_shared_from_this<CameraNo
 
 		virtual void stopCapturing();
 
-		virtual RR_SHARED_PTR<DuckieImage > captureImage();
+		virtual RR_SHARED_PTR<Image > captureImage();
 
 		virtual void toggleFramerate();
 
 		virtual void changeFormat(std::string format);
 
-		virtual RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > get_ImageStream();
-		virtual void set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > value);
+		virtual RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > get_ImageStream();
+		virtual void set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > value);
 
 
 	private:
@@ -69,17 +69,17 @@ class CameraNode : public Camera, public boost::enable_shared_from_this<CameraNo
 
 		bool _is_shutdown;
 
-		RR_SHARED_PTR<DuckieImage > _image;
+		RR_SHARED_PTR<Image > _image;
 
-		RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > _imagestream;
-		map<uint32_t, map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > > > _imagestream_endpoints;
+		RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > _imagestream;
+		map<uint32_t, map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > > > _imagestream_endpoints;
 
 		bool _capturing;
 
 		// helper functions
 		void _capture_threadfunc();
-		void _imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep);
-		void _imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep);
+		void _imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep);
+		void _imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep);
 
 };
 

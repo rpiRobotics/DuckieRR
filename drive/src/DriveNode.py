@@ -12,7 +12,7 @@ RRN = RR.RobotRaconteurNode.s
 
 drive_servicedef="""
 #Service to provide interface to Duckiebot wheels
-service Duckiebot_Interface
+service Duckiebot.Drive
 
 option version 0.8
 
@@ -191,13 +191,10 @@ if __name__ == '__main__':
     launch_file = """\
 node_name: Duckiebot.Drive
 
-robdef: %s
-
 objects:
-    Drive:
-        name: Drive
-        class: DriveNode.DriveNode
-        configuration: ~
+    - name: Drive
+      robdef: %s
+      class: DriveNode.DriveNode
 
 tcp_port: %d
     """%(FormatRobdefString(drive_servicedef), args.port)

@@ -14,43 +14,6 @@ import sys, argparse
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
 
-lineDetector_servicedef="""
-#Service to provide interface to Duckiebots Detected Lines
-service Duckiebot_Interface
-
-option version 0.8
-
-option constant uint8 WHITE 0
-option constant uint8 YELLOW 1
-option constant uint8 RED 2
-
-struct Vector2D
-    field double x 
-    field double y
-end struct
-
-struct Point
-    field double x
-    field double y
-    field double z
-end struct
-
-struct Segment
-    field uint8 color
-    field Vector2D{list} pixels_normalized
-    field Vector2D normal
-    field Point{list} points
-end struct
-
-object LineDetector
-    property Segment{list} segments
-
-    # likely want some way of clients only checking when new segments found.
-    #pipe Segment{list} segmentStream
-    event newSegments(Segment{list} segs)
-end object
-"""
-
 class LineDetectorNode(Configurable,RRNodeInterface):
     """Line Detector Node will return detected lines."""
     def __init__(self, configuration):
@@ -65,7 +28,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         Configurable.__init__(self,param_names,configuration)
 
         self._segments = []
-        self.LDConsts = RRN.GetConstants("Duckiebot_Interface")
+        self.RRConsts = RRN.GetConstants("Duckiebot")
         
         # Thread lock
         self.thread_lock = threading.Lock()
@@ -91,7 +54,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         
         # Find the image service and connect to the pipe
         try:
-            cam_url = 'rr+local:///?nodename=DuckiebotServer.Camera&service=Camera'
+            cam_url = 'rr+local:///?nodename=Duckiebot.Camera&service=Camera'
             self.duckie_cam = RRN.ConnectService(cam_url)
         except Exception as e:
             self.log("WARNING: Could not connect to Camera Interface at %s"%(cam_url))
@@ -196,15 +159,15 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         
         if len(white.lines) > 0:
             lines_normalized_white = ((white.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_white, white.normals, self.LDConsts.WHITE))
+            self._segments.extend(self.toSegment(lines_normalized_white, white.normals, self.RRConsts.WHITE))
         
         if len(yellow.lines) > 0:
             lines_normalized_yellow = ((yellow.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.LDConsts.YELLOW))
+            self._segments.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.RRConsts.YELLOW))
         
         if len(red.lines) > 0:
             lines_normalized_red = ((red.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_red, red.normals, self.LDConsts.RED))
+            self._segments.extend(self.toSegment(lines_normalized_red, red.normals, self.RRConsts.RED))
 
         self.newSegments.fire(self._segments)
         self.intermittent_log('# segments: white %3d yellow %3d red %3d' % (len(white.lines),
@@ -214,10 +177,10 @@ class LineDetectorNode(Configurable,RRNodeInterface):
     def toSegment(self, lines, normals, color):
         segmentList = []
         for x1,y1,x2,y2,norm_x,norm_y in np.hstack((lines,normals)):
-            segment = RRN.NewStructure("Duckiebot_Interface.Segment")
+            segment = RRN.NewStructure("Duckiebot.Segment")
             segment.pixels_normalized = []
             segment.color = color
-	    vec = RRN.NewStructure("Duckiebot_Interface.Vector2D")
+	    vec = RRN.NewStructure("Duckiebot.Vector2D")
             vec.x = x1
             vec.y = y1
             segment.pixels_normalized.append(vec)
@@ -253,15 +216,15 @@ if __name__ == '__main__':
     launch_file = """\
 node_name: Duckiebot.LineDetector
 
-robdef: %s
-
 objects:
-    LD:
-        name: LineDetector
-        class: LineDetectorNode.LineDetectorNode
-        configuration: %s 
+    - name: Duckiebot
+      robdef: ${DUCKIEBOT_ROBDEF}
+    - name: LineDetector
+      robdef: 
+      class: LineDetectorNode.LineDetectorNode
+      configuration: %s 
 
-    """%(FormatRobdefString(lineDetector_servicedef), config_file)
+    """%(config_file)
     
     launch_config = yaml.load(launch_file)
     LaunchRRNode(**launch_config)

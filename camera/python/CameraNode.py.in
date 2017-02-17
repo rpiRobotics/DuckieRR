@@ -39,7 +39,7 @@ class CameraNode(RRNodeInterface):
         
         self._lock = threading.RLock()
 
-        self._image = RRN.NewStructure("Duckiebot_Interface.DuckieImage")
+        self._image = RRN.NewStructure("Duckiebot.Image")
         self._image.width = self.res_w
         self._image.height = self.res_h
         self._image.format = self._format
@@ -199,16 +199,15 @@ if __name__ == '__main__':
     launch_file="""\
 node_name: Duckiebot.Camera
 
-robdef: ${CAMERA_ROBDEF}
-
 objects:
-    Camera:
-        name: Camera
-        class: CameraNode.CameraNode
-        configuration: ~
+    - name: Duckiebot
+      robdef: ${DUCKIEBOT_ROBDEF}
+    - name: Camera
+      robdef: ${CAMERA_ROBDEF}
+      class: CameraNode.CameraNode
 
 tcp_port: %d
-    """%(FormatRobdefString(camera_servicedef), args.port)
+    """%(args.port)
     
     launch_config = yaml.load(launch_file)
 

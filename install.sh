@@ -43,11 +43,16 @@ fi
 # Robot Raconteur may be installed, so we need to check
 # if RR not installed version will be empty, otherwise it will have version number
 if [[ "$(python -c "import pkg_resources;print pkg_resources.get_distribution('RobotRaconteur').version")" != "0.8"* ]]; then
-	cd /
-	sudo tar -xvf "$RR_DIR/RobotRaconteur-0.8.1-beta-Python.linux-armhf-py2.7-2016-07-18.tar"
+	if [[ $(uname -m) == "arm"* ]]
+		cd /
+		sudo tar -xvf "$RR_DIR/RobotRaconteur-0.8.1-beta-Python.linux-armhf-py2.7-2016-07-18.tar"
+	fi
 	sudo apt-get install -y python-{serial,numpy,opencv,pygame}
-	sudo usermod -a -G dialout ubuntu
-	sudo usermod -a -G video ubuntu	
+	
+	if [[ $(uname -m) == "arm"* ]]
+		sudo usermod -a -G dialout ubuntu
+		sudo usermod -a -G video ubuntu
+	fi	
 fi
 
 # ------------------------
@@ -71,6 +76,20 @@ if [[ ! -d "$RASPICAM_DIR" && -x "$RASPICAM_DIR" ]]; then
 	sudo make install
 	sudo ldconfig
 fi
+# -----------------------------------
+# Make the Robdef Files and Libraries
+# -----------------------------------
+ROBDEF_DIR = "$DEPEND_DIR/DuckiebotRobdef"
+cd $ROBDEF_DIR
+mkdir -p build
+cd build
+cmake ..
+sudo make install
+
+# ------------------------
+# Any other packages...
+# ------------------------
+sudo apt-get install libyaml-cpp-dev -y
 
 # ------------------------
 # Make the source code

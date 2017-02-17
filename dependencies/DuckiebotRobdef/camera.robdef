@@ -1,14 +1,9 @@
 #Service to provide interface to Duckiebot camera
-service Duckiebot_Interface
+service Duckiebot.Camera
 
 option version 0.8
 
-struct DuckieImage
-	field string format
-	field int32 width
-	field int32 height
-	field uint8[] data
-end struct
+import Duckiebot
 
 object Camera
 
@@ -19,11 +14,11 @@ property uint8 capturing
 
 function void startCapturing()
 function void stopCapturing()
-function DuckieImage captureImage()
+function Duckiebot.Image captureImage()
 
 function void toggleFramerate()
 function void changeFormat(string format)
 
-pipe DuckieImage ImageStream
+pipe Duckiebot.Image ImageStream
 
 end object

@@ -1,0 +1,51 @@
+# The main service definition.
+# Will store only structs/Constants that are common to other services. 
+
+service Duckiebot
+
+option version 0.8
+
+option constant uint8 WHITE 0
+option constant uint8 YELLOW 1
+option constant uint8 RED 2
+
+struct Image
+    field string format
+    field int32 width
+    field int32 height
+    field uint8[] data
+end struct
+
+struct CameraInfo
+    field int32 width
+    field int32 height
+    field string distortion_model
+    field double[] D
+    field double[9] K
+    field double[9] R
+    field double[12] P
+end struct
+
+struct Vector2D
+    field double x 
+    field double y
+end struct
+
+struct Point
+    field double x
+    field double y
+    field double z
+end struct
+
+struct Segment
+    field uint8 color
+    field Vector2D{list} pixels_normalized
+    field Vector2D normal
+    field Point{list} points
+end struct
+
+struct Pixel
+	field int32 u
+	field int32 v
+end struct
+

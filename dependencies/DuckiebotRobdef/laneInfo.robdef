@@ -1,0 +1,18 @@
+#Service to provide interface to Duckiebots Detected Lines
+service Duckiebot.LaneInfo
+
+option version 0.8
+
+struct LanePose
+    # d - lateral offset from center
+    # phi - heading error
+    field double d
+    field double sigma_d  
+    field double phi 
+    field double sigma_phi
+    field uint8 in_lane  
+end struct
+
+object LaneInfo
+    property LanePose lanePose
+end object

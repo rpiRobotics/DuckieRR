@@ -1,0 +1,14 @@
+#Service to provide interface to Duckiebots Detected Lines
+service Duckiebot.LineDetector
+
+option version 0.8
+
+import Duckiebot 
+
+object LineDetector
+    property Duckiebot.Segment{list} segments
+
+    # likely want some way of clients only checking when new segments found.
+    #pipe Segment{list} segmentStream
+    event newSegments(Duckiebot.Segment{list} segs)
+end object

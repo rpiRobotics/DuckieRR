@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <exception>
 
+using namespace Duckiebot::Camera;
 using namespace RobotRaconteur;
 using namespace std;
 
@@ -80,13 +81,13 @@ int main ( int argc,char **argv ) {
     if(port == 0) port = t2->GetListenPort();
 
     // Register the service def
-    RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<Duckiebot_InterfaceFactory>());
+    RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<Duckiebot__CameraFactory>());
 
     //Initialize the implementation object
     boost::shared_ptr<CameraNode> camera_obj = boost::make_shared<CameraNode>();
 
     //Register the service
-    RobotRaconteurNode::s()->RegisterService("Camera","Duckiebot_Interface",camera_obj);
+    RobotRaconteurNode::s()->RegisterService("Camera","Duckiebot.Camera",camera_obj);
 
 
     // Determine hostname

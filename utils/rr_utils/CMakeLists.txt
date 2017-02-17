@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(rr_utils)
 
 find_program(PYTHON "python")
+message(${PYTHON})
 
 if (PYTHON)
     set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py")

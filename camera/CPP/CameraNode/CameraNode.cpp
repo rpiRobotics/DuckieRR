@@ -20,7 +20,7 @@ CameraNode::CameraNode(void){
 
     _is_shutdown = false;
 
-    _image = boost::make_shared<DuckieImage>();
+    _image = boost::make_shared<Image>();
     _image->format = _format;
     _image->width = _res_w;
     _image->height = _res_h;
@@ -82,7 +82,7 @@ void CameraNode::stopCapturing(){
 	_capturing = false;
 }
 
-RR_SHARED_PTR<DuckieImage > CameraNode::captureImage(){
+RR_SHARED_PTR<Image > CameraNode::captureImage(){
 	recursive_mutex::scoped_lock lock(global_lock);
 
 	// capture a frame
@@ -134,33 +134,33 @@ void CameraNode::changeFormat(std::string format){
 /********************************
  *		Pipe
  ********************************/
-RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > CameraNode::get_ImageStream(){
+RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > CameraNode::get_ImageStream(){
 	return _imagestream;
 }
-void CameraNode::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<DuckieImage > > > value){
+void CameraNode::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > value){
 	_imagestream  = value;
 	_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
 	// _1 is a placeholder that tells boost _imagestream_pipeconnect expects 1 additional arguement
 }
 
-void CameraNode::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep){
+void CameraNode::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep){
 	recursive_mutex::scoped_lock lock(global_lock);
 
 	// Store the connected PipeEndpoint in nested maps by endpoint and index
 	if (_imagestream_endpoints.count(pipe_ep->GetEndpoint())==0){
-		_imagestream_endpoints.insert(make_pair(pipe_ep->GetEndpoint(), map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > >() ));
+		_imagestream_endpoints.insert(make_pair(pipe_ep->GetEndpoint(), map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > >() ));
 	}
-	map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > >& dict1=_imagestream_endpoints.at(pipe_ep->GetEndpoint());
+	map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > >& dict1=_imagestream_endpoints.at(pipe_ep->GetEndpoint());
 	dict1.insert(make_pair(pipe_ep->GetIndex(),pipe_ep));
 
 	pipe_ep->SetPipeEndpointClosedCallback(boost::bind(&CameraNode::_imagestream_pipeclosed,shared_from_this(),_1));
 }
 
-void CameraNode::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep){
+void CameraNode::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep){
 	recursive_mutex::scoped_lock lock(global_lock);
 
 	try{
-		map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > >& dict1 = _imagestream_endpoints.at(pipe_ep->GetEndpoint());
+		map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > >& dict1 = _imagestream_endpoints.at(pipe_ep->GetEndpoint());
 		dict1.erase(pipe_ep->GetIndex()); 
 	}
 	catch(...){}
@@ -182,24 +182,24 @@ void CameraNode::_capture_threadfunc(){
 		auto time_limit = boost::chrono::steady_clock::now() + framerate_delay;
 
 		// Capture a frame
-		boost::shared_ptr<DuckieImage> frame = captureImage();
+		boost::shared_ptr<Image> frame = captureImage();
 
 		recursive_mutex::scoped_lock lock(global_lock);
 
 		// determine all connected endpoints
 		vector<uint32_t> endpoints;
-		for (map<uint32_t, map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > > >::iterator e=_imagestream_endpoints.begin(); e!=_imagestream_endpoints.end(); ++e){
+		for (map<uint32_t, map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > > >::iterator e=_imagestream_endpoints.begin(); e!=_imagestream_endpoints.end(); ++e){
 			endpoints.push_back(e->first);
 		}
 
 		//loop through them and determine all indices at that endpoint
 		for(vector<uint32_t>::iterator e=endpoints.begin(); e!=endpoints.end(); ++e){
 			if(_imagestream_endpoints.count(*e)==0) continue;
-			map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > >& dict1=_imagestream_endpoints.at(*e);
+			map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > >& dict1=_imagestream_endpoints.at(*e);
 
 			// Get all of the indices at that endpoint
 			std::vector<int32_t> indices;
-			for(map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > >::iterator ee=dict1.begin(); ee!=dict1.end(); ++ee){
+			for(map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > >::iterator ee=dict1.begin(); ee!=dict1.end(); ++ee){
 				indices.push_back(ee->first);
 			}
 
@@ -209,7 +209,7 @@ void CameraNode::_capture_threadfunc(){
 
 				uint32_t endpoint = *e;
 				int32_t index = *ee;
-				boost::shared_ptr<PipeEndpoint<boost::shared_ptr<DuckieImage> > > pipe_ep;
+				boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep;
 				try{
 					pipe_ep=dict1.at(index);
 

@@ -9,37 +9,9 @@ from math import floor, atan2, pi, cos, sin, sqrt
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import multivariate_normal, entropy
 
-from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
+from rr_utils import (RRNodeInterface, LaunchRRNode)
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
-
-laneInfo_servicedef="""
-#Service to provide interface to Duckiebots Detected Lines
-service Duckiebot_Interface
-
-option version 0.8
-
-# ideally these shouldn't be repeated here...
-# this should probably import the other robdef so it can be used.
-# but that would require them to define different services I think...
-option constant uint8 WHITE 0
-option constant uint8 YELLOW 1
-option constant uint8 RED 2
-
-struct LanePose
-    # d - lateral offset from center
-    # phi - heading error
-    field double d
-    field double sigma_d  
-    field double phi 
-    field double sigma_phi
-    field uint8 in_lane  
-end struct
-
-object LaneInfo
-    property LanePose lanePose
-end object
-"""
 
 class LaneInfoNode(Configurable,RRNodeInterface):
     """Lane Info node will return position in lane"""
@@ -51,12 +23,12 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         self.active = True
 
         # This may need to change...
-        self.LDConsts = RRN.GetConstants("Duckiebot_Interface")
+        self.LDConsts = RRN.GetConstants("Duckiebot.LaneInfo")
         
         self.d,self.phi = np.mgrid[self.d_min:self.d_max:self.delta_d,self.phi_min:self.phi_max:self.delta_phi]
         self.beliefRV=np.empty(self.d.shape)
         self.initializeBelief()
-        self._lanePose = RRN.NewStructure("Duckiebot_Interface.LanePose")
+        self._lanePose = RRN.NewStructure("Duckiebot.LaneInfo.LanePose")
         self._lanePose.d=self.mean_0[0]
         self._lanePose.phi=self.mean_0[1]
 
@@ -81,7 +53,7 @@ class LaneInfoNode(Configurable,RRNodeInterface):
             
             # try connecting to the drive service so we can determine the current velocity
             try:
-                drive_url = 'rr+local:///?nodename=DuckiebotServer.Drive&service=Drive'
+                drive_url = 'rr+local:///?nodename=Duckiebot.Drive&service=Drive'
                 self.drive = RRN.ConnectService(drive_url)
             except Exception as e:
                 self.log("WARNING: Could not connect to Drive Interface at %s"%(drive_url))
@@ -96,7 +68,7 @@ class LaneInfoNode(Configurable,RRNodeInterface):
 
         # Find the line segment service and add a callback for new segments
         try:
-            lineDetect_url = 'rr+local:///?nodename=DuckiebotServer.LineDetector&service=LineDetector'
+            lineDetect_url = 'rr+local:///?nodename=Duckiebot.LineDetector&service=LineDetector'
             self.lineDetector = RRN.ConnectService(lineDetect_url)
         except Exception as e:
             self.log("WARNING: Could not connect to Line Detector Interface at %s"%(lineDetect_url))
@@ -346,16 +318,16 @@ if __name__ == '__main__':
     launch_file="""\
 node_name: Duckiebot.LaneInfo
 
-robdef: %s
-
 objects:
-    Lane:
-        name: LaneInfo
-        class: LaneInfoNode.LaneInfoNode
-        configuration: %s
+    - name: Duckiebot
+      robdef: ${DUCKIEBOT_ROBDEF}
+    - name: LaneInfo
+      robdef: ${LANEINFO_ROBDEF}
+      class: LaneInfoNode.LaneInfoNode
+      configuration: %s
 
 tcp_port: %d
-    """%(FormatRobdefString(laneInfo_servicedef), config_file, args.port)
+    """%(config_file, args.port)
 
     launch_config = yaml.load(launch_file)
 
