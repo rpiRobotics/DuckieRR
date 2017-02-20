@@ -1,0 +1,5 @@
+HarrisThresh: 0.1
+BinaryThresh: 80
+PolyDPLenThresh: 0.04
+AreaThresh: 250
+AngleThresh: 1.3962634015954636
