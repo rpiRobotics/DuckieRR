@@ -89,15 +89,13 @@ if [ "$ON_PI" = true ]; then
 
 	fi
 
-	if [ ! "$OPENCV_DIR/build" ]; then
-		if [[ $(uname -m) == "arm"* ]]; then 
-			cd $OPENCV_DIR
-			mkdir -p build
-			cd build 
-			cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DPYTHON2_EXECUTABLE=/usr/bin/python -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 -DPYTHON_INCLUDE_DIR2=/usr/include/arm-linux-gnueabihf/python2.7 -DPYTHON_LIBRARY=/usr/lib/arm-linux-gnueabihf/libpython2.7.so -DPYTHON2_NUMPY_INCLUDE_DIRS=/usr/lib/python2.7/dist-packages/numpy/core/include/ ..
-			make -j7 
-			sudo make install
-		fi
+	if [ ! -d "$OPENCV_DIR/build" ]; then
+		cd $OPENCV_DIR
+		mkdir -p build
+		cd build 
+		cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DPYTHON2_EXECUTABLE=/usr/bin/python -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 -DPYTHON_INCLUDE_DIR2=/usr/include/arm-linux-gnueabihf/python2.7 -DPYTHON_LIBRARY=/usr/lib/arm-linux-gnueabihf/libpython2.7.so -DPYTHON2_NUMPY_INCLUDE_DIRS=/usr/lib/python2.7/dist-packages/numpy/core/include/ ..
+		make -j7 
+		sudo make install
 	fi
 
 	# ------------------------
