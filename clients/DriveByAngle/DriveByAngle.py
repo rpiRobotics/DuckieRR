@@ -117,7 +117,7 @@ def get_initial_detection():
     # change these later to a param file
     if onDuckie:
         keypress = False
-        thread.start_new_thread(keyboard_input_thread, (,))
+        thread.start_new_thread(keyboard_input_thread, ())
     else:
         cv2.namedWindow('Control', cv2.WINDOW_AUTOSIZE)
         cv2.createTrackbar('HarrisThresh', 'Control', 1, 100, cb_HarrisThresh)
