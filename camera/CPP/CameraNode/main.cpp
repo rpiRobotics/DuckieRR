@@ -8,7 +8,7 @@
 #include <signal.h>
 #include <exception>
 
-using namespace Duckiebot::Camera;
+using namespace Duckiebot;
 using namespace RobotRaconteur;
 using namespace std;
 
@@ -63,7 +63,7 @@ int main ( int argc,char **argv ) {
 
     // Register Abort signal handler, just incase anything goes wrong...
     signal(SIGABRT, abortSignalHandler);
-
+   try{
     //Initialize the local transport
     boost::shared_ptr<LocalTransport> t1 = boost::make_shared<LocalTransport>();
     t1->StartServerAsNodeName("Duckiebot.Camera");
@@ -80,15 +80,15 @@ int main ( int argc,char **argv ) {
     t2->StartServer(port);
     if(port == 0) port = t2->GetListenPort();
 
-    // Register the service def
-    RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<Duckiebot__CameraFactory>());
+    // Register the service defs
+    RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<DuckiebotFactory>());
+    RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<Camera::Duckiebot__CameraFactory>());
 
     //Initialize the implementation object
     boost::shared_ptr<CameraNode> camera_obj = boost::make_shared<CameraNode>();
 
     //Register the service
     RobotRaconteurNode::s()->RegisterService("Camera","Duckiebot.Camera",camera_obj);
-
 
     // Determine hostname
     char hn[20]; 
@@ -119,7 +119,10 @@ int main ( int argc,char **argv ) {
     while (!sig_caught){ }
 
     camera_obj->Shutdown();
-        
+    
+    } catch(std::exception& e){
+       cerr << e.what() << endl;
+    }
     //This must be here to prevent segfault
     RobotRaconteurNode::s()->Shutdown();
     return 0;

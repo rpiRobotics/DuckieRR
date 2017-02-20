@@ -17,7 +17,7 @@ if [ ! -d "$BOOST_DIR" ]; then
 	# untar
 	tar -xzvf "boost_1_60_0.tar.gz"
 	# remove the tarball
-	rm "boost_1_60_0.tar.gz"	
+	rm "boost_1_60_0.tar.gz"
 fi
 
 # Install Boost
@@ -43,16 +43,16 @@ fi
 # Robot Raconteur may be installed, so we need to check
 # if RR not installed version will be empty, otherwise it will have version number
 if [[ "$(python -c "import pkg_resources;print pkg_resources.get_distribution('RobotRaconteur').version")" != "0.8"* ]]; then
-	if [[ $(uname -m) == "arm"* ]]
+	if [[ $(uname -m) == "arm"* ]]; then
 		cd /
 		sudo tar -xvf "$RR_DIR/RobotRaconteur-0.8.1-beta-Python.linux-armhf-py2.7-2016-07-18.tar"
 	fi
 	sudo apt-get install -y python-{serial,numpy,opencv,pygame}
-	
-	if [[ $(uname -m) == "arm"* ]]
+
+	if [[ $(uname -m) == "arm"* ]]; then
 		sudo usermod -a -G dialout ubuntu
 		sudo usermod -a -G video ubuntu
-	fi	
+	fi
 fi
 
 # ------------------------
@@ -70,7 +70,7 @@ if [[ ! -d "$RASPICAM_DIR" && -x "$RASPICAM_DIR" ]]; then
 
 	cd $RAPSICAM_DIR
 	mkdir -p build
-	cd build 
+	cd build
 	cmake ..
 	make
 	sudo make install
@@ -79,7 +79,7 @@ fi
 # -----------------------------------
 # Make the Robdef Files and Libraries
 # -----------------------------------
-ROBDEF_DIR = "$DEPEND_DIR/DuckiebotRobdef"
+ROBDEF_DIR="$DEPEND_DIR/DuckiebotRobdef"
 cd $ROBDEF_DIR
 mkdir -p build
 cd build

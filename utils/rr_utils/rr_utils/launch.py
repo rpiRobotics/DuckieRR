@@ -93,7 +93,7 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
             raise RuntimeError(msg)
 
         # Register the service def
-        RRN.RegisterServiceType(robdef)
+        RRN.RegisterServiceType(service_def)
         
         # determine the class that implements it.
         if 'class' in obj:

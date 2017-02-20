@@ -11,7 +11,7 @@ SET (BOOST_LIBRARY_DIR_DEBUG "${Dependency_DIR}/boost_1_60_0/stage")
 SET (BOOST_LIBRARY_DIR_RELEASE "${Dependency_DIR}/boost_1_60_0/stage")
 
 SET (RR_COMMON_CMAKE ${Dependency_DIR}/RobotRaconteurCommon.cmake)
-SET (ROBDEF_DIR ${Dependency_DIR}/DuckiebotServiceDefs)
+SET (ROBDEF_DIR ${Dependency_DIR}/DuckiebotRobdef)
 SET (DUCKIEBOT_ROBDEF ${ROBDEF_DIR}/duckiebot.robdef)
 
 
