@@ -63,7 +63,7 @@ int main ( int argc,char **argv ) {
 
     // Register Abort signal handler, just incase anything goes wrong...
     signal(SIGABRT, abortSignalHandler);
-   try{
+   
     //Initialize the local transport
     boost::shared_ptr<LocalTransport> t1 = boost::make_shared<LocalTransport>();
     t1->StartServerAsNodeName("Duckiebot.Camera");
@@ -120,9 +120,6 @@ int main ( int argc,char **argv ) {
 
     camera_obj->Shutdown();
     
-    } catch(std::exception& e){
-       cerr << e.what() << endl;
-    }
     //This must be here to prevent segfault
     RobotRaconteurNode::s()->Shutdown();
     return 0;
