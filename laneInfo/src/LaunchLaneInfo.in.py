@@ -7,6 +7,9 @@ if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Initialize the laneInfo nodes')
+    parser.add_argument('--port',type=int,default=0,
+        help='TCP port to host service on' +\
+        '(will auto-generate if not specified)')
     parser.add_argument('--configLD', type=open,
         help='A config file for the line detector (Otherwise use Default)')
     parser.add_argument('--configGP', type=open,
@@ -51,8 +54,8 @@ objects:
       class: LaneInfoNode.LaneInfoNode
       configuration: %s 
 
-tcp_port: 1237
-    """%(config_LD, config_GP, config_LANE)
+tcp_port: %d
+    """%(config_LD, config_GP, config_LANE, args.port)
     
     launch_config = yaml.load(launch_file)
     LaunchRRNode(**launch_config)
