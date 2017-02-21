@@ -1,4 +1,7 @@
 from abc import ABCMeta, abstractmethod
+import time
+import RobotRaconteur
+RRN = RobotRaconteur.RobotRaconteurNode.s
 
 class abstract_attribute(object):
     def __get__(self,obj, type):
@@ -36,3 +39,29 @@ class RRNodeInterface():
 
     def log(self,msg):
         print "[%s] %s"%(self.node_name,msg)
+
+    def FindAndConnect(self, nodeType, required=True, attempts=2, TO=5, tcp=False):
+        transports = ["rr+local"]
+        if tcp:
+            transports.append("rr+tcp")
+
+        for attempt in xrange(attempts):
+            res=RRN.FindServiceByType(nodeType,transports)
+            if (len(res)==0):
+                msg = "WARNING: Could not find the %s Interface.\n"%(nodeType)
+                msg += "Attempt (%d/%d). Will wait %d seconds and try again..."%(attempt, attempts, TO)
+                self.log(msg)
+                time.sleep(TO)
+            else:
+                return RRN.ConnectService(res[0].ConnectionURL)
+         
+        if required:
+            msg = "[%s] ERROR: Could not connect to the %s Interface after max number (%d) of attempts.\n"%(self.node_name, nodeType, attempts)
+            msg += "This interface is required.\n"
+            msg += "[%s] Shutting down."%(self.node_name)
+            raise RuntimeError(msg)
+        else:
+            msg = "WARNING: Could not connect to the %s Interface after max number (%d) of attempts.\n"%(self.node_name, nodeType, attempts)
+            msg += "This interface will not be available."
+            self.log(msg)
+

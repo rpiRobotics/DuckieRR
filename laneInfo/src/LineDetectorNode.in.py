@@ -52,21 +52,10 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         #   c[1] is any inpit args (the configuration dictionary)
         self.detector = instantiate(c[0],c[1])
         
-        # Find the image service and connect to the pipe
-        try:
-            cam_url = 'rr+local:///?nodename=Duckiebot.Camera&service=Camera'
-            self.duckie_cam = RRN.ConnectService(cam_url)
-        except Exception as e:
-            self.log("WARNING: Could not connect to Camera Interface at %s"%(cam_url))
-            self.log("will wait 5 seconds and try again...")
-            time.sleep(5)
-            try:
-                self.duckie_cam = RRN.ConnectService(cam_url)
-            except Exception as e:
-                msg = "[%s] ERROR: Still could not connect to Camera Interface at %s\n"%(self.node_name, cam_url)
-                msg+= "[%s] Shutting down." %(self.node_name)
-                raise RuntimeError(msg)
+        # Find and connect to the image service
+        self.duckie_cam = self.FindAndConnect("Duckiebot.Camera.Camera")
         
+        # connect to the pipe
         self.imstream = self.duckie_cam.ImageStream.Connect(-1) # connect to the pipe
         self.imstream.PacketReceivedEvent+=self._cbImage
 
@@ -180,13 +169,16 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             segment = RRN.NewStructure("Duckiebot.Segment")
             segment.pixels_normalized = []
             segment.color = color
-	    vec = RRN.NewStructure("Duckiebot.Vector2D")
+
+            vec = RRN.NewStructure("Duckiebot.Vector2D")
             vec.x = x1
             vec.y = y1
             segment.pixels_normalized.append(vec)
+            
             vec.x = x2
             vec.y = y2
             segment.pixels_normalized.append(vec)
+            
             vec.x = norm_x
             vec.y = norm_y
             segment.normal = vec
@@ -219,8 +211,9 @@ node_name: Duckiebot.LineDetector
 objects:
     - name: Duckiebot
       robdef: ${DUCKIEBOT_ROBDEF}
+
     - name: LineDetector
-      robdef: 
+      robdef: ${LINEDETECTOR_ROBDEF}
       class: LineDetectorNode.LineDetectorNode
       configuration: %s 
 

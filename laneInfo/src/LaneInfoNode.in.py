@@ -23,7 +23,7 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         self.active = True
 
         # This may need to change...
-        self.LDConsts = RRN.GetConstants("Duckiebot.LaneInfo")
+        self.RRConsts = RRN.GetConstants("Duckiebot")
         
         self.d,self.phi = np.mgrid[self.d_min:self.d_max:self.delta_d,self.phi_min:self.phi_max:self.delta_phi]
         self.beliefRV=np.empty(self.d.shape)
@@ -52,34 +52,10 @@ class LaneInfoNode(Configurable,RRNodeInterface):
             raise RuntimeError("'Use Propagation' is not yet implemented.")
             
             # try connecting to the drive service so we can determine the current velocity
-            try:
-                drive_url = 'rr+local:///?nodename=Duckiebot.Drive&service=Drive'
-                self.drive = RRN.ConnectService(drive_url)
-            except Exception as e:
-                self.log("WARNING: Could not connect to Drive Interface at %s"%(drive_url))
-                self.log("will wait 5 seconds and try again...")
-                time.sleep(5)
-                try:
-                    self.drive = RRN.ConnectService(lineDetect_url)
-                except Exception as e:
-                    msg = "[%s] ERROR: Still could not connect to Drive Interface at %s\n"%(self.node_name, drive_url)
-                    msg+= "[%s] Shutting down." %(self.node_name)
-                    raise RuntimeError(msg)
+            self.drive = self.FindAndConnect("Duckiebot.Drive.Drive")
 
-        # Find the line segment service and add a callback for new segments
-        try:
-            lineDetect_url = 'rr+local:///?nodename=Duckiebot.LineDetector&service=LineDetector'
-            self.lineDetector = RRN.ConnectService(lineDetect_url)
-        except Exception as e:
-            self.log("WARNING: Could not connect to Line Detector Interface at %s"%(lineDetect_url))
-            self.log("will wait 5 seconds and try again...")
-            time.sleep(5)
-            try:
-                self.lineDetector = RRN.ConnectService(lineDetect_url)
-            except Exception as e:
-                msg = "[%s] ERROR: Still could not connect to Line Detector Interface at %s\n"%(self.node_name, lineDetect_url)
-                msg+= "[%s] Shutting down." %(self.node_name)
-                raise RuntimeError(msg)
+        # Find the ground projection service and add a callback for new segments
+        self.lineDetector = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
 
         # Add the callback to process new segments
         self.lineDetector.newSegments += self.processSegments
@@ -170,7 +146,7 @@ For more info on algorithm and parameters please refer to the google doc:
         measurement_likelihood = np.zeros(self.d.shape)
 
         for segment in segment_list:
-            if segment.color != self.LDConsts.WHITE and segment.color != self.LDConsts.YELLOW:
+            if segment.color != self.RRConsts.WHITE and segment.color != self.RRConsts.YELLOW:
                 continue
             if segment.points[0].x < 0 or segment.points[1].x < 0:
                 continue
@@ -270,7 +246,7 @@ For more info on algorithm and parameters please refer to the google doc:
         l_i = (l1+l2)/2
         d_i = (d1+d2)/2
         phi_i = np.arcsin(t_hat[1])
-        if segment.color == self.LDConsts.WHITE: # right lane is white
+        if segment.color == self.RRConsts.WHITE: # right lane is white
             if(p1[0] > p2[0]): # right edge of white lane
                 d_i = d_i - self.linewidth_white
             else: # left edge of white lane
@@ -278,7 +254,7 @@ For more info on algorithm and parameters please refer to the google doc:
                 phi_i = -phi_i
             d_i = d_i - self.lanewidth/2
 
-        elif segment.color == self.LDConsts.YELLOW: # left lane is yellow
+        elif segment.color == self.RRConsts.YELLOW: # left lane is yellow
             if (p2[0] > p1[0]): # left edge of yellow lane
                 d_i = d_i - self.linewidth_yellow
                 phi_i = -phi_i
