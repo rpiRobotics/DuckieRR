@@ -116,6 +116,7 @@ def get_initial_detection():
     # create controls to adjust parameters
     # change these later to a param file
     if onDuckie:
+	global keypress
         keypress = False
         thread.start_new_thread(keyboard_input_thread, ())
     else:
@@ -275,11 +276,10 @@ def run_main_loop():
         framenum += 1        
         
         toc = time.time() - tic
-        print 1.0/toc
         if toc < ifs:
             time.sleep(ifs-toc)
-
-
+        
+	print 1.0/(time.time()-tic)
 
 
 def update_line(h1,new_xdata,new_ydata):
@@ -323,7 +323,8 @@ def cb_AngleThresh(val):
     params['AngleThresh']*=(np.pi/180.0)
 
 def keyboard_input_thread():
-    raw_input()
+    global keypress
+    raw_input('press enter to stop')
     keypress = True
 
 

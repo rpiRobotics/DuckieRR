@@ -54,7 +54,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         h_file = "${DEFAULT_CAMEXT}"
         with open(h_file,'r') as f:
             h_data = yaml.load(f.read());
-            self.H = h_data['homography'].reshape((3,3))
+            self.H = np.array( h_data['homography'] ).reshape((3,3))
             self.Hinv = np.linalg.inv(self.H)
 
         self.rectified_input = False
@@ -66,13 +66,13 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             self.cam_info.width = cam_data['image_width']
             self.cam_info.height = cam_data['image_height']
             d = cam_data['distortion_coefficients']
-            self.cam_info.D = d['data'].reshape((d['rows'],d['cols']))
+            self.cam_info.D =np.array( d['data'], dtype=np.float64 ).reshape((d['rows'],d['cols']))
             k = cam_data['camera_matrix']
-            self.cam_info.K = k['data'].reshape((k['rows'],k['cols']))
+            self.cam_info.K =np.array( k['data'], dtype=np.float64 ).reshape((k['rows'],k['cols']))
             r = cam_data['rectification_matrix']
-            self.cam_info.R = r['data'].reshape((r['rows'],r['cols']))
+            self.cam_info.R =np.array( r['data'], dtype=np.float64 ).reshape((r['rows'],r['cols']))
             p = cam_data['projection_matrix']
-            self.cam_info.P = p['data'].reshape((p['rows'],p['cols']))
+            self.cam_info.P =np.array( p['data'], dtype=np.float64 ).reshape((p['rows'],p['cols']))
 
 
         '''
@@ -180,7 +180,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             v = pix.v
         except AttributeError:
             # we must have been passed a vector
-            pix = vector2pixel(pix)
+            pix = self.vector2pixel(pix)
             u = pix.u
             v = pix.v
 
@@ -215,12 +215,12 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         return pixel
 
     def rectifyCVPoint(self,raw2d):
-        src_pt = raw2d.astype('double')
-        rectified = cv2.undistortPoints(src_pt, self.cam_info.K, self.cam_info.D, self.cam_info.R, self.cam_info.P)
+        src_pt = raw2d.reshape((1,1,2)).astype(np.float64)
+        rectified = cv2.undistortPoints(src_pt, self.cam_info.K, self.cam_info.D,R=self.cam_info.R, P=self.cam_info.P)
         return rectified
 
     def unrectifyCVPoint(rect2d):
-        uv_rect = rect2d.astype('double')
+        uv_rect = rect2d.astype(np.float64)
         # extract some paremeters from the camera matrices
         R = self.cam_info.R    
         D = self.cam_info.D

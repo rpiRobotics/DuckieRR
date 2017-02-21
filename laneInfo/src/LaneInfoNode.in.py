@@ -31,6 +31,9 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         self._lanePose = RRN.NewStructure("Duckiebot.LaneInfo.LanePose")
         self._lanePose.d=self.mean_0[0]
         self._lanePose.phi=self.mean_0[1]
+        self._lanePose.sigma_d = self.sigma_d_0
+        self._lanePose.sigma_phi = self.sigma_phi_0
+        self._lanePose.in_lane = 0
 
         self.t_last_update = time.time()
         self.v_current = 0
@@ -187,7 +190,9 @@ For more info on algorithm and parameters please refer to the google doc:
         self._lanePose.phi = self.phi_min + maxids[1]*self.delta_phi
         
         max_val = self.beliefRV.max()
-        self._lanePose.in_lane = max_val > self.min_max and len(segment_list_msg.segments) > self.min_segs and np.linalg.norm(measurement_likelihood) != 0
+        in_lane = max_val > self.min_max and len(segment_list_msg.segments) > self.min_segs and np.linalg.norm(measurement_likelihood) != 0
+        self._lanePose.in_lane = int(in_lane)
+
         
         # print "time to process segments:"
         # print rospy.get_time() - t_start

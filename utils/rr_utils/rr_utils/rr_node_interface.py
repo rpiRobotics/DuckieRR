@@ -45,7 +45,7 @@ class RRNodeInterface():
         if tcp:
             transports.append("rr+tcp")
 
-        for attempt in xrange(attempts):
+        for attempt in xrange(1,attempts+1):
             res=RRN.FindServiceByType(nodeType,transports)
             if (len(res)==0):
                 msg = "WARNING: Could not find the %s Interface.\n"%(nodeType)
@@ -56,8 +56,8 @@ class RRNodeInterface():
                 return RRN.ConnectService(res[0].ConnectionURL)
          
         if required:
-            msg = "[%s] ERROR: Could not connect to the %s Interface after max number (%d) of attempts.\n"%(self.node_name, nodeType, attempts)
-            msg += "This interface is required.\n"
+            msg = "[%s] Could not connect to the %s Interface after max number of (%d) attempts.\n"%(self.node_name, nodeType, attempts)
+            msg += "This interface was marked as 'required'.\n"
             msg += "[%s] Shutting down."%(self.node_name)
             raise RuntimeError(msg)
         else:

@@ -21,7 +21,7 @@ def printConnectionMsg(node_name, obj_name, tcp_port):
     print msg
 
 def LaunchRRNode(node_name, objects, tcp_port=None):
-    RRN.UseNumpy = True
+    RRN.UseNumPy = True
 
     # create our local transport 
     t1 = RR.LocalTransport()
@@ -106,12 +106,15 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
             # check if there is any configuration specified
             if 'configuration' in obj:
                 obj_config = obj['configuration']
-                # check if the config is just a string (assume it is a file)
+                # Note that any node that inherits from Configurable has a single argument 'configuration' that should be a dictionary
+                # Therefore when instantiate passes the arguments by keyword we need to wrap the actual parameters in a dictionary under the key 'configuration'
+               
+                # check if the config is just a string (if so assume it is a file)
                 if isinstance(obj_config, str):
                     with open(obj_config,'r') as f:
-                        config = yaml.load(f.read())
-                elif isinstance(obj_config, dict):
-                    config = obj_config # assume we already have the correct dict
+                        config = {"configuration": yaml.load(f.read()) }
+                elif isinstance(obj_config, dict): # if we already have a dictionary
+                    config = {"configuration":obj_config} # assume we already have the correct parameter dict
                 else:
                     msg = 'Expecting configuration for %s as a dict or valid yaml file, obtained %r'%(node, obj_config)
             else:
