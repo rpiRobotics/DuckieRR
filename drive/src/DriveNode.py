@@ -93,7 +93,7 @@ class DriveNode(RRNodeInterface):
         u_l_limited = max(min(u_l, self.limit), -self.limit)
 
         # send the speed to the wheels
-        self.driver.setWheelsSpeed(left=u_r_limited, right=u_r_limited)
+        self.driver.setWheelsSpeed(left=u_l_limited, right=u_r_limited)
 
     def toggleEStop(self):
         self._estop = not self._estop
