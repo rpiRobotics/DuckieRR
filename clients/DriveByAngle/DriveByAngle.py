@@ -178,12 +178,13 @@ def get_initial_detection():
     return alpha
 
 def run_main_loop():
-    acc = 0
-    vel = 0
-    omg = 0
+    acc = 0.0
+    vel = 0.0
+    omg = 0.0
     framenum = 0
     alpha_prev = alpha_d
     alpha_dot_list = np.zeros(5)
+    cX = c0
     nodetect_count = 0
 
     while (True):
@@ -217,6 +218,9 @@ def run_main_loop():
                 cY = int(M["m01"]/M["m00"])
                 if debug:
                     cv2.circle(gray_BGR, (cX,cY), 7, (255,255,255),-1)
+            
+            #else:
+            #    cX = cX;
 
             f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
             alpha = 2*np.arctan(w/(2*f))
@@ -227,7 +231,10 @@ def run_main_loop():
                 cv2.drawContours(gray_BGR,[verts], -1, (0,255,0),2)
         else:
             if nodetect_count < nodetect_limit:
-                alpha = alpha_prev
+                #alpha = alpha_prev
+                alpha = alpha_d
+                #cX = c0;
+                print "no tag %d"%(nodetect_count)
                 nodetect_count += 1    
             else:
                 print 'WARNING: No tag detected for %d frames. Stopping'%(nodetect_limit) 
@@ -256,6 +263,10 @@ def run_main_loop():
 
         vel += acc*ifs
         vel = np.clip(vel, vel_min, vel_max)
+        
+        # determine the steering controller accuracy
+        c_err = float((c0-cX))/(im_w/2) # normalize
+        omg = Kp_omg*c_err
 
         # update our plot
         if debug:
@@ -279,7 +290,7 @@ def run_main_loop():
         if toc < ifs:
             time.sleep(ifs-toc)
         
-	print 1.0/(time.time()-tic)
+	#print 1.0/(time.time()-tic)
 
 
 def update_line(h1,new_xdata,new_ydata):
@@ -351,14 +362,23 @@ nodetect_limit = 10
 acc_min = -1.0
 acc_max = 1.0
 
-vel_min = 0.0
+vel_min = -0.5
 vel_max = 1.0
 
-alpha_d = 0
-Kp = 2
-Kd = -2 
+alpha_d = 0.0
+Kp = 2.0
+Kd = -2.0
+
+Kp_omg = 0.8;
+
+
 framerate = 15
-ifs = 1.0/framerate  
+ifs = 1.0/framerate
+
+im_w = 0
+im_h = 0
+c0 = 0
+r0 = 0  
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -391,6 +411,9 @@ if __name__ == '__main__':
     if local:
         cam = cv2.VideoCapture(0)
         wheels = False # no matter what the command line said...
+        im_w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+        im_h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT) 
+
     else:
         if onDuckie:
             cam = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Camera&service=Camera")
@@ -398,6 +421,8 @@ if __name__ == '__main__':
             cam = RRN.ConnectService("rr+tcp://duckiebot1.local:1235/?service=Camera")
         if cam.format != 'gray':
             cam.changeFormat('gray')
+        im_w = cam.resolution[0]
+        im_h = cam.resolution[1]
         if wheels:
             # Connect to the wheels
             if onDuckie:
@@ -408,7 +433,10 @@ if __name__ == '__main__':
             vel_max = drive.limit
             drive.trim = -0.02
 
-    
+    # image center point
+    c0 = im_w/2
+    r0 = im_h/2
+
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()
 
@@ -438,6 +466,7 @@ if __name__ == '__main__':
     if local:
         cam.release()
 
+    raw_input('Press enter to exit.')
     cv2.destroyAllWindows()
     plt.close('all')
 
