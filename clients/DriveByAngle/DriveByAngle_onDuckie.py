@@ -112,7 +112,7 @@ def get_initial_detection():
 
     # create controls to adjust parameters
     # change these later to a param file
-	global keypress
+    global keypress
     keypress = False
     thread.start_new_thread(keyboard_input_thread, ())
 
