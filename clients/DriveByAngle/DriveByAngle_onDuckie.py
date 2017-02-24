@@ -4,7 +4,7 @@ import time
 import cv2
 import numpy as np
 from duckie_utils.image import *
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import sys, argparse
 import yaml
 import thread
@@ -63,9 +63,6 @@ def detectVehicle(gray):
         binIm:      the binary image created by thresholding
     '''
     threshIm = cv2.threshold(blurred, params['BinaryThresh'], maxval, cv2.THRESH_BINARY_INV)[1]
-    if debug:
-        cv2.imshow('bin', threshIm)
-
     '''
     FINDCONTOURS
         im_new, contours, hierarchy  = findContours(im, ret_mode, approx_meth:
@@ -115,30 +112,15 @@ def get_initial_detection():
 
     # create controls to adjust parameters
     # change these later to a param file
-    if onDuckie:
 	global keypress
-        keypress = False
-        thread.start_new_thread(keyboard_input_thread, ())
-    else:
-        cv2.namedWindow('Control', cv2.WINDOW_AUTOSIZE)
-        cv2.createTrackbar('HarrisThresh', 'Control', 1, 100, cb_HarrisThresh)
-        cv2.createTrackbar('BinaryThresh', 'Control', 80, 255, cb_BinaryThresh)
-        cv2.createTrackbar('PolyDPLenThresh', 'Control', 4, 5, cb_PolyDPLenThresh)
-        cv2.createTrackbar('AreaThresh', 'Control', 25, 1000, cb_AreaThresh)
-        cv2.createTrackbar('AngleThresh', 'Control', 80, 180, cb_AngleThresh)
+    keypress = False
+    thread.start_new_thread(keyboard_input_thread, ())
 
     verts = None
     while (True):
-        if local:
-            ret, frame = cam.read()
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        else:
-            # if there were other things going on, we should subscribe to a stream
-            # but since this is the only thing using the camera, its ok
-            gray = DuckieImageToGrayMat(cam.captureImage())
-
-        if not onDuckie:
-            gray_BGR = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+        # if there were other things going on, we should subscribe to a stream
+        # but since this is the only thing using the camera, its ok
+        gray = DuckieImageToGrayMat(cam.captureImage())
         
         detections = detectVehicle(gray)
         if len(detections) > 0:
@@ -146,26 +128,10 @@ def get_initial_detection():
             i_max = np.argmax([cv2.contourArea(detections[i]) for i in xrange(len(detections))])
             verts = detections[i_max]
 
-            if onDuckie:
-                print verts
-            else:
-                # draw the contour
-                #cv2.drawContours(gray_BGR, [c], -1, (0,255,0),2)
-                cv2.drawContours(gray_BGR,[verts], -1, (0,255,0),2)
+            print verts
 
-        if onDuckie:
-            if keypress:
-                break
-        else:
-            cv2.imshow('image',gray_BGR)
-            key = cv2.waitKey(30)
-            if (key == 13 or key == 10):
-                break
-    
-    if not onDuckie:
-        cv2.destroyWindow('Control')
-        if not debug:
-            cv2.destroyWindow('image')
+        if keypress:
+            break
 
     if verts is None:
         raise RuntimeError('No Tag Detected')
@@ -182,6 +148,7 @@ def run_main_loop():
     vel = 0.0
     omg = 0.0
     framenum = 0
+    avg_freq = 0.0
     alpha_prev = alpha_d
     alpha_dot_list = np.zeros(5)
     cX = c0
@@ -190,16 +157,9 @@ def run_main_loop():
     while (True):
         tic = time.time()
 
-        if local:
-            ret, frame = cam.read()
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        else:
-            # if there were other things going on, we should subscribe to a stream
-            # but since this is the only thing using the camera, its ok
-            gray = DuckieImageToGrayMat(cam.captureImage())
-
-        if debug:
-            gray_BGR = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+        # if there were other things going on, we should subscribe to a stream
+        # but since this is the only thing using the camera, its ok
+        gray = DuckieImageToGrayMat(cam.captureImage())
         
         detections = detectVehicle(gray)
         if len(detections) > 0:
@@ -216,19 +176,11 @@ def run_main_loop():
             if (M["m00"]!=0):
                 cX = int(M["m10"]/M["m00"])
                 cY = int(M["m01"]/M["m00"])
-                if debug:
-                    cv2.circle(gray_BGR, (cX,cY), 7, (255,255,255),-1)
-            
-            #else:
-            #    cX = cX;
 
             f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
             alpha = 2*np.arctan(w/(2*f))
 
-            if debug:
-                # draw the contour
-                #cv2.drawContours(gray_BGR, [c], -1, (0,255,0),2)
-                cv2.drawContours(gray_BGR,[verts], -1, (0,255,0),2)
+
         else:
             if nodetect_count < nodetect_limit:
                 #alpha = alpha_prev
@@ -267,41 +219,23 @@ def run_main_loop():
         # determine the steering controller accuracy
         c_err = float((c0-cX))/(im_w/2) # normalize
         omg = Kp_omg*c_err
-
-        # update our plot
-        if debug:
-            update_line(line0,framenum,alpha)
-            update_line(line1, framenum, vel)
-            update_line(line2, framenum, acc)
-            cv2.imshow('image',gray_BGR)
-            plt.pause(0.0001)
-        
-            if (cv2.waitKey(1) == 27):
-                break
         
         # SEND THE COMMAND TO THE MOTORS
-        if wheels:
-            drive.carCmd(vel, omg)
-
-        # increment the frame number
-        framenum += 1        
+        drive.carCmd(vel, omg)        
         
+        # increment the frame number
+        framenum += 1
+
         toc = time.time() - tic
         if toc < ifs:
             time.sleep(ifs-toc)
-
+        
         toc2 = time.time()-tic
         avg_freq = (framenum-1)*avg_freq/framenum + toc2/framenum
 
         
-    print "Average Loop Freq: %f"%(avg_freq)
+	print "Average Loop Freq: %f"%(avg_freq)
 
-def update_line(h1,new_xdata,new_ydata):
-    h1.set_xdata(np.append(h1.get_xdata(), new_xdata))
-    h1.set_ydata(np.append(h1.get_ydata(), new_ydata))
-    h1.axes.relim()
-    h1.axes.autoscale_view()
-    plt.draw()
 
 def getParams(config_file):
     # load default params
@@ -310,31 +244,6 @@ def getParams(config_file):
         config_file = 'default.yaml'
     with open(config_file, 'r') as f:
         params = yaml.load(f.read())
-
-def updateParam(name, value):
-    global params
-    params[name] = value
-
-def cb_HarrisThresh(val):
-    global params
-    updateParam('HarrisThresh',val)
-    params['HarrisThresh']/=100.0
-
-def cb_BinaryThresh(val):
-    updateParam('BinaryThresh',val)
-
-def cb_PolyDPLenThresh(val):
-    updateParam('PolyDPLenThresh',val)
-    params['PolyDPLenThresh']/=100.0
-
-def cb_AreaThresh(val):
-    global params
-    updateParam('AreaThresh',val)
-    params['AreaThresh']*=10
-
-def cb_AngleThresh(val):
-    updateParam('AngleThresh',val)
-    params['AngleThresh']*=(np.pi/180.0)
 
 def keyboard_input_thread():
     global keypress
@@ -346,17 +255,9 @@ def keyboard_input_thread():
 #         MAIN
 #########################
 # Define a bunch of globals
-debug = False
-local = False
-wheels = True
-onDuckie = False
-
-
 keypress = False
 params = None
-line0 = None
-line1 = None
-line2 = None
+
 cam = None
 drive = None
 
@@ -374,7 +275,6 @@ Kd = -2.0
 
 Kp_omg = 0.8;
 
-
 framerate = 15
 ifs = 1.0/framerate
 
@@ -386,91 +286,43 @@ r0 = 0
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Run the DriveByAngle Script')
-    parser.add_argument('--local', action='store_true',
-        help='run the code using laptop camera')
-    parser.add_argument('--debug', action='store_true',
-        help='run the code with additional controls')
-    parser.add_argument('--nowheels', action='store_true',
-        help='run the code but do not drive the car' )
-    parser.add_argument('--onDuckie', action='store_true',
-        help='run the code ON the duckiebot')
     parser.add_argument('--config', type=open, 
         help='A config file for internal params (Otherwise use default.yaml)')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     args = parser.parse_args(sys.argv[1:])
-    debug = args.debug
-    local = args.local
-    wheels = not args.nowheels
-    onDuckie = args.onDuckie
 
     RRN.UseNumPy = True
 
     # get the params
     getParams(args.config)
 
-
     # Connect to the camera
-    if local:
-        cam = cv2.VideoCapture(0)
-        wheels = False # no matter what the command line said...
-        im_w = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
-        im_h = cam.get(cv2.CAP_PROP_FRAME_HEIGHT) 
-
-    else:
-        if onDuckie:
-            cam = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Camera&service=Camera")
-        else:
-            cam = RRN.ConnectService("rr+tcp://duckiebot1.local:1235/?service=Camera")
-        if cam.format != 'gray':
-            cam.changeFormat('gray')
-        im_w = cam.resolution[0]
-        im_h = cam.resolution[1]
-        if wheels:
-            # Connect to the wheels
-            if onDuckie:
-                drive = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Drive&service=Drive")
-            else:
-                drive = RRN.ConnectService("rr+tcp://duckiebot1.local:1234/?service=Drive")
-            
-            vel_max = drive.limit
-            drive.trim = -0.02
-
+    cam = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Camera&service=Camera")
+    if cam.format != 'gray':
+        cam.changeFormat('gray')
+    im_w = cam.resolution[0]
+    im_h = cam.resolution[1]
+    
     # image center point
     c0 = im_w/2
     r0 = im_h/2
 
+    # Connect to the wheels
+    drive = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Drive&service=Drive")
+            
+    vel_max = drive.limit
+    drive.trim = -0.02
+
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()
-
-    # create a figure to plot the angle
-    if debug:
-        fig0 = plt.figure(0)
-        line0, = plt.plot([],[])
-        line0.axes.autoscale()
-
-        # create another figure to show the vel and acc
-        fig1 = plt.figure(2)
-        line1,line2 = plt.plot([],[],[],[])
-        line1.axes.autoscale()
-        line2.axes.autoscale()
-    
-        # make the plots interactive and show them
-        plt.ion()
-        plt.show()
     
     # Run the main loop
     run_main_loop()
 
-    # Update the vel to the wheels
-    if wheels:
-        drive.carCmd(0,0)
-
-    if local:
-        cam.release()
+    # Stop the wheels
+    drive.carCmd(0,0)
 
     raw_input('Press enter to exit.')
-    cv2.destroyAllWindows()
-    plt.close('all')
-
+    
 
