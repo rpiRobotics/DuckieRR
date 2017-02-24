@@ -231,10 +231,10 @@ def run_main_loop():
             time.sleep(ifs-toc)
         
         toc2 = time.time()-tic
-        avg_freq = (framenum-1)*avg_freq/framenum + toc2/framenum
+        avg_time = (framenum-1)*avg_freq/framenum + toc2/framenum
 
         
-	print "Average Loop Freq: %f"%(avg_freq)
+	print "Average Loop Freq: %f"%(1.0/avg_time)
 
 
 def getParams(config_file):
