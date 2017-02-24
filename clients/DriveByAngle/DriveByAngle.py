@@ -182,6 +182,7 @@ def run_main_loop():
     vel = 0.0
     omg = 0.0
     framenum = 0
+    avg_time = 0.0
     alpha_prev = alpha_d
     alpha_dot_list = np.zeros(5)
     cX = c0
@@ -291,10 +292,10 @@ def run_main_loop():
             time.sleep(ifs-toc)
 
         toc2 = time.time()-tic
-        avg_freq = (framenum-1)*avg_freq/framenum + toc2/framenum
+        avg_time = ((framenum-1)*avg_time/framenum) + (toc2/framenum)
 
         
-    print "Average Loop Freq: %f"%(avg_freq)
+    print "Average Loop Freq: %f"%(1.0/avg_time)
 
 def update_line(h1,new_xdata,new_ydata):
     h1.set_xdata(np.append(h1.get_xdata(), new_xdata))

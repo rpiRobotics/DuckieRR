@@ -148,7 +148,7 @@ def run_main_loop():
     vel = 0.0
     omg = 0.0
     framenum = 0
-    avg_freq = 0.0
+    avg_time = 0.0
     alpha_prev = alpha_d
     alpha_dot_list = np.zeros(5)
     cX = c0
@@ -231,10 +231,10 @@ def run_main_loop():
             time.sleep(ifs-toc)
         
         toc2 = time.time()-tic
-        avg_time = (framenum-1)*avg_freq/framenum + toc2/framenum
+        avg_time = ((framenum-1)*avg_time/framenum) + (toc2/framenum)
 
         
-	print "Average Loop Freq: %f"%(1.0/avg_time)
+    print "Average Loop Freq: %f"%(1.0/avg_time)
 
 
 def getParams(config_file):
