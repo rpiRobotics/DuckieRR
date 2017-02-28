@@ -42,6 +42,8 @@ D = np.array([],dtype=np.float64)
 K = np.array([],dtype=np.float64)
 R = np.array([],dtype=np.float64)
 P = np.array([],dtype=np.float64)
+map1 = np.ndarray(shape=(480,640, 1),dtype=np.float32)
+map2 = np.ndarray(shape=(480,640, 1),dtype=np.float32)
 
 def donothing(x):
     pass
@@ -153,8 +155,10 @@ def get_initial_detection():
     while (True):
         # if there were other things going on, we should subscribe to a stream
         # but since this is the only thing using the camera, its ok
-        gray = DuckieImageToGrayMat(cam.captureImage())
-        gray = cv2.undistort(gray,K,D)
+        grayRaw = DuckieImageToGrayMat(cam.captureImage())
+        gray = np.ndarray(shape=grayRaw.shape,dtype=np.uint8)
+        cv2.remap(grayRaw, map1,map2, cv2.INTER_LINEAR, gray)
+        gray.astype
         
         detections = detectVehicle(gray)
         if len(detections) > 0:
@@ -193,9 +197,10 @@ def run_main_loop():
 
         # if there were other things going on, we should subscribe to a stream
         # but since this is the only thing using the camera, its ok
-        gray = DuckieImageToGrayMat(cam.captureImage())
-        gray = cv2.undistort(gray,K,D)
-        
+        grayRaw = DuckieImageToGrayMat(cam.captureImage())
+        gray = np.ndarray(shape=grayRaw.shape,dtype=np.uint8)
+        cv2.remap(grayRaw,map1,map2,cv2.INTER_LINEAR,gray)
+         
         detections = detectVehicle(gray)
         if len(detections) > 0:
             nodetect_count = 0
@@ -315,6 +320,8 @@ if __name__ == '__main__':
 
     # get the params
     getParams(args.config)
+    cv2.initUndistortRectifyMap(K,D,R,P,(640,480),cv2.CV_32FC1, map1, map2)
+
 
     # Connect to the camera
     cam = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Camera&service=Camera")
