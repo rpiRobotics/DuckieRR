@@ -203,8 +203,8 @@ def run_main_loop():
             # compute the center of the contour
             M = cv2.moments(verts)
             if (M["m00"]!=0):
-                cX = int(M["m10"]/M["m00"])
-                cY = int(M["m01"]/M["m00"])
+                cX = int(M["m10"]/M["m00"]) #col
+                cY = int(M["m01"]/M["m00"]) #row
 
             f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
             alpha = 2*np.arctan(w/(2*f))

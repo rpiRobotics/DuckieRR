@@ -1,14 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(DuckiebotRobdef)
 
-# List all of the Robdef Files
-SET (ROBDEFS 
-        ${CMAKE_CURRENT_SOURCE_DIR}/duckiebot.robdef
-        ${CMAKE_CURRENT_SOURCE_DIR}/camera.robdef
-        ${CMAKE_CURRENT_SOURCE_DIR}/groundProjection.robdef
-        ${CMAKE_CURRENT_SOURCE_DIR}/laneInfo.robdef
-        ${CMAKE_CURRENT_SOURCE_DIR}/lineDetector.robdef)
-
 # List all of the target libraries to be created
 # (Namespace1.Namespace2 --> Namespace1__Namespace2)
 SET (ALLTARGETS 
@@ -16,19 +8,28 @@ SET (ALLTARGETS
         Duckiebot__Camera 
         Duckiebot__GroundProjection 
         Duckiebot__LaneInfo 
-        Duckiebot__LineDetector)
+        Duckiebot__LineDetector
+        Duckiebot__Drive)
+
+# Find all of the Robdef Files
+FILE(GLOB ROBDEFS "${CMAKE_CURRENT_SOURCE_DIR}/*.robdef")
 
 # Make a directory for the generated thunksource
 FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/CPP_Thunk)
 SET(THUNK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/CPP_Thunk)
 
-# Gen List all of the expected Thunksource files
+# Gen Lists all of the expected Thunksource files
 foreach(LIB_NAME ${ALLTARGETS})
-    SET (${LIB_NAME}FILES 
+    SET (${LIB_NAME}HEADERS 
             ${THUNK_DIR}/${LIB_NAME}.h
-            ${THUNK_DIR}/${LIB_NAME}_stubskel.h
-            ${THUNK_DIR}/${LIB_NAME}_stubskel.cpp)
-    SET (THUNK_FILES ${THUNK_FILES} ${LIB_NAME}FILES)
+            ${THUNK_DIR}/${LIB_NAME}_stubskel.h)
+    SET (${LIB_NAME}SOURCE
+        ${THUNK_DIR}/${LIB_NAME}_stubskel.cpp)
+    SET (${LIB_NAME}FILES
+            ${${LIB_NAME}HEADERS} 
+            ${${LIB_NAME}SOURCE} )
+    SET (THUNK_FILES ${THUNK_FILES} ${${LIB_NAME}FILES})
+    SET (THUNK_HEADERS ${THUNK_HEADERS} ${${LIB_NAME}HEADERS})
 endforeach(LIB_NAME)
 
 # Set up some relative dependencies so we can find RR and Boost
@@ -62,7 +63,6 @@ foreach(LIB_NAME ${ALLTARGETS})
 endforeach(LIB_NAME)
 
 # Install all header files
-FILE(GLOB THUNK_HEADERS "${THUNK_DIR}/*.h")
 install(FILES ${THUNK_HEADERS} DESTINATION include/${PROJECT_NAME})
 
 # install all libraries

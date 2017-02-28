@@ -1,3 +1,15 @@
+nodetect_limit: 15
+framerate: 15
+
+Kp: 1.0
+Kd: -2.0
+Kp_omg: 0.95
+
+acc_min: -1.0
+acc_max: 1.0
+vel_min: -0.5
+vel_max: 1.0
+
 HarrisThresh: 0.1
 BinaryThresh: 80
 PolyDPLenThresh: 0.04

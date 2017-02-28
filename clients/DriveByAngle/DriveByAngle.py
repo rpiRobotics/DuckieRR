@@ -136,6 +136,7 @@ def get_initial_detection():
             # if there were other things going on, we should subscribe to a stream
             # but since this is the only thing using the camera, its ok
             gray = DuckieImageToGrayMat(cam.captureImage())
+            gray = cv2.undistort(gray,K,D)
 
         if not onDuckie:
             gray_BGR = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
@@ -198,6 +199,7 @@ def run_main_loop():
             # if there were other things going on, we should subscribe to a stream
             # but since this is the only thing using the camera, its ok
             gray = DuckieImageToGrayMat(cam.captureImage())
+            gray = cv2.undistort(gray,K,D)
 
         if debug:
             gray_BGR = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
@@ -306,11 +308,24 @@ def update_line(h1,new_xdata,new_ydata):
 
 def getParams(config_file):
     # load default params
-    global params
+    global params, D, K, R, P
+
     if config_file is None:
-        config_file = 'default.yaml'
-    with open(config_file, 'r') as f:
-        params = yaml.load(f.read())
+        config_file = open('default.yaml','r')
+    
+    params = yaml.load(config_file.read())
+
+    d = params['distortion_coefficients']
+    D =np.array( d['data'], dtype=np.float64 ).reshape((d['rows'],d['cols']))
+    
+    k = params['camera_matrix']
+    K =np.array( k['data'], dtype=np.float64 ).reshape((k['rows'],k['cols']))
+    
+    r = params['rectification_matrix']
+    R =np.array( r['data'], dtype=np.float64 ).reshape((r['rows'],r['cols']))
+    
+    p = params['projection_matrix']
+    P =np.array( p['data'], dtype=np.float64 ).reshape((p['rows'],p['cols']))
 
 def updateParam(name, value):
     global params
@@ -383,6 +398,11 @@ im_w = 0
 im_h = 0
 c0 = 0
 r0 = 0  
+
+D = np.array([],dtype=np.float64)
+K = np.array([],dtype=np.float64)
+R = np.array([],dtype=np.float64)
+P = np.array([],dtype=np.float64)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

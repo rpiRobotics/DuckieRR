@@ -1,0 +1,22 @@
+#Service to provide interface to Duckiebot wheels
+service Duckiebot.Drive
+
+option version 0.8
+
+object Drive
+
+property uint8 eStop
+property double gain
+property double trim
+property double baseline
+property double radius
+property double k
+property double limit
+
+
+function void wheelCmd(double vL, double vR)
+function void carCmd(double v, double omega)
+function void toggleEStop()
+function void resetParams()
+
+end object
