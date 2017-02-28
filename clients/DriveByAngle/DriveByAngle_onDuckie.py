@@ -9,6 +9,35 @@ import sys, argparse
 import yaml
 import thread
 
+# Define a bunch of globals
+nodetect_limit = 15
+
+acc_min = -1.0
+acc_max = 1.0
+
+vel_min = -0.5
+vel_max = 1.0
+
+alpha_d = 0.0
+Kp = 1.0 #2.5
+Kd = -2.0
+
+Kp_omg = 0.95
+
+framerate = 15
+ifs = 1.0/framerate
+
+im_w = 0
+im_h = 0
+c0 = 0
+r0 = 0  
+
+keypress = False
+params = None
+
+cam = None
+drive = None
+
 
 def donothing(x):
     pass
@@ -241,9 +270,9 @@ def getParams(config_file):
     # load default params
     global params
     if config_file is None:
-        config_file = 'default.yaml'
-    with open(config_file, 'r') as f:
-        params = yaml.load(f.read())
+        config_file = open('default.yaml','r')
+    
+    params = yaml.load(config_file.read())
 
 def keyboard_input_thread():
     global keypress
@@ -254,34 +283,6 @@ def keyboard_input_thread():
 #########################
 #         MAIN
 #########################
-# Define a bunch of globals
-keypress = False
-params = None
-
-cam = None
-drive = None
-
-nodetect_limit = 10
-
-acc_min = -1.0
-acc_max = 1.0
-
-vel_min = -0.5
-vel_max = 1.0
-
-alpha_d = 0.0
-Kp = 2.0
-Kd = -2.0
-
-Kp_omg = 0.8;
-
-framerate = 15
-ifs = 1.0/framerate
-
-im_w = 0
-im_h = 0
-c0 = 0
-r0 = 0  
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -322,7 +323,4 @@ if __name__ == '__main__':
 
     # Stop the wheels
     drive.carCmd(0,0)
-
-    raw_input('Press enter to exit.')
-    
 
