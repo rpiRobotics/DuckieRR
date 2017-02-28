@@ -286,7 +286,7 @@ double get_initial_detection(void){
     
     vector<cv::Point> verts;
     while(!keypress){
-	vector<cv::Point> temp_verts;
+    vector<cv::Point> temp_verts;
         cv::Mat grayRaw, grayRect;
         grayRaw = DuckieImageToGrayMat(cam->captureImage());
 
@@ -297,7 +297,7 @@ double get_initial_detection(void){
         detectVehicle(grayRect, temp_verts);
 
         if (temp_verts.size() > 0){
-	    verts = temp_verts;
+            verts = temp_verts;
             cv::Point c = computeCenter(verts);
             cout << "Center: " << c << endl;
         }
