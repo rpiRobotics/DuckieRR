@@ -182,8 +182,12 @@ def run_main_loop():
     alpha_dot_list = np.zeros(5)
     cX = c0
     nodetect_count = 0
-
-    while (True):
+    
+    global keypress
+    keypress = False
+    thread.start_new_thread(keyboard_input_thread,())
+    
+    while (not keypress):
         tic = time.time()
 
         # if there were other things going on, we should subscribe to a stream
@@ -214,6 +218,7 @@ def run_main_loop():
             if nodetect_count < nodetect_limit:
                 #alpha = alpha_prev
                 alpha = alpha_d
+                vel = 0 # force the integration back to zero. 
                 #cX = c0;
                 print "no tag %d"%(nodetect_count)
                 nodetect_count += 1    
@@ -268,11 +273,17 @@ def run_main_loop():
 
 def getParams(config_file):
     # load default params
-    global params
+    global params,nodetect_limit, Kp, Kp_omg, Kd, framerate,ifs
     if config_file is None:
         config_file = open('default.yaml','r')
     
     params = yaml.load(config_file.read())
+    nodetect_limit = params["nodetect_limit"]
+    Kp = params["Kp"]
+    Kd = params["Kd"]
+    Kp_omg = params["Kp_omg"]
+    framerate = params["framerate"]
+    ifs = 1.0/framerate
 
 def keyboard_input_thread():
     global keypress
@@ -313,7 +324,8 @@ if __name__ == '__main__':
     drive = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Drive&service=Drive")
             
     vel_max = drive.limit
-    drive.trim = -0.02
+    #drive.trim = -0.02
+    #drive.gain = 1.5
 
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()

@@ -8,6 +8,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/chrono.hpp>
 #include <fstream>
 #include <sstream>
 #include "HelperFunctions.hpp"
@@ -88,7 +89,17 @@ int main ( int argc,char **argv ) {
     vector<double> test = {1,2,3,4};
     cout << cv::mean(cv::Mat(test))[0] << endl;
     return 0;
+    
+    typedef boost::chrono::duration<double> dsec;
+    auto tic = boost::chrono::steady_clock::now();
+    dsec framerate_delay = dsec(ifs);
+    auto time_limit = tic+framerate_delay;
+    boost::this_thread::sleep_until(time_limit);
+    dsec toc = boost::chrono::steady_clock::now() - tic;
+    cout << toc.count() << endl;
+    return 0;
     */
+
     try{
         // Get the parameters.
         getParams(config);

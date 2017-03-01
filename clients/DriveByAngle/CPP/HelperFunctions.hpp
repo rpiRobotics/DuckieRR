@@ -291,10 +291,10 @@ double get_initial_detection(void){
         grayRaw = DuckieImageToGrayMat(cam->captureImage());
 
         // Rectify the image
-        cv::remap(grayRaw, grayRect, map1, map2, cv::INTER_LINEAR);
+        //cv::remap(grayRaw, grayRect, map1, map2, cv::INTER_LINEAR);
         
         // Perform the detection
-        detectVehicle(grayRect, temp_verts);
+        detectVehicle(grayRaw, temp_verts);
 
         if (temp_verts.size() > 0){
             verts = temp_verts;
@@ -331,7 +331,7 @@ void run_main_loop(){
     dsec framerate_delay = dsec(ifs);
     
     double acc=0, vel=0, omg=0;
-    uint framenum = 0;
+    long framenum = 0;
     double avg_time = 0;
     double alpha = alpha_d;
     double alpha_prev = alpha_d;
@@ -348,16 +348,17 @@ void run_main_loop(){
         grayRaw = DuckieImageToGrayMat(cam->captureImage());
 
         // Rectify the image
-        cv::remap(grayRaw, grayRect, map1, map2, cv::INTER_LINEAR);
+        //cv::remap(grayRaw, grayRect, map1, map2, cv::INTER_LINEAR);
         
         // Perform the detection
-        detectVehicle(grayRect, verts);
+        detectVehicle(grayRaw, verts);
 
         if (verts.size() > 0){
             double w = (double)computeWidth(verts);
             cX = computeCenter(verts).x;
             double f = 1; // The focal length of the camera... could actually extract but it's probably not necessary
             alpha = 2*atan(w/(2*f));
+            nodetect_count = 0;
         }
         else{
             if (nodetect_count < nodetect_limit){
@@ -410,7 +411,7 @@ void run_main_loop(){
         boost::this_thread::sleep_until(time_limit);
         
         //check how long we have been running
-        auto toc = boost::chrono::steady_clock::now() - tic;
+        dsec toc = boost::chrono::steady_clock::now() - tic;
 
         double toc_sec = toc.count();
         avg_time = ((framenum-1)*avg_time/framenum) + (toc_sec/framenum);
