@@ -138,8 +138,8 @@ def detectVehicle(gray):
 
 def get_initial_detection():
     print "Initial Detection routine..."
+    print "Place vehicle at desired stop distance"
     print "When finished press <ENTER>" 
-    print "(Note that the car will start moving if wheels enabled)"
 
     # create controls to adjust parameters
     # change these later to a param file
@@ -225,7 +225,7 @@ def run_main_loop():
 
         w_dot = (w-w_prev)/ifs # not generally good practice....
         if w_dot != 0:
-            tau = (w-w_d)/w_dot
+            tau = (w_d-w)/w_dot
         else:
             tau = tau_prev
 
@@ -239,7 +239,7 @@ def run_main_loop():
             tau_dot_avg = tau_dot
         else:
             # implement a moving average
-            tau_dot_avg = np.mean(alpha_dot_list)
+            tau_dot_avg = np.mean(tau_dot_list)
 
         # save the last value
         w_prev = w 
@@ -336,6 +336,9 @@ if __name__ == '__main__':
     # Show detection and capture the desired distance
     w_d = get_initial_detection()
     
+    msg = "place the vehicle at the starting mark and press enter when ready.\n"
+    msg += "(note that the vehicle will start moving!)"
+    raw_input(msg) 
     # Run the main loop
     run_main_loop()
 
