@@ -157,8 +157,7 @@ def get_initial_detection():
         # but since this is the only thing using the camera, its ok
         grayRaw = DuckieImageToGrayMat(cam.captureImage())
         gray = np.ndarray(shape=grayRaw.shape,dtype=np.uint8)
-        cv2.remap(grayRaw, map1,map2, cv2.INTER_LINEAR, gray)
-        gray.astype
+        cv2.remap(grayRaw,map1,map2,cv2.INTER_LINEAR,gray)
         
         detections = detectVehicle(gray)
         if len(detections) > 0:
@@ -191,8 +190,12 @@ def run_main_loop():
     alpha_dot_list = np.zeros(5)
     cX = c0
     nodetect_count = 0
-
-    while (True):
+    
+    global keypress
+    keypress = False
+    thread.start_new_thread(keyboard_input_thread,())
+    
+    while (not keypress):
         tic = time.time()
 
         # if there were other things going on, we should subscribe to a stream
@@ -225,6 +228,7 @@ def run_main_loop():
             if nodetect_count < nodetect_limit:
                 #alpha = alpha_prev
                 alpha = alpha_d
+                vel = 0 # force the integration back to zero. 
                 #cX = c0;
                 print "no tag %d"%(nodetect_count)
                 nodetect_count += 1    
@@ -279,12 +283,18 @@ def run_main_loop():
 
 def getParams(config_file):
     # load default params
-    global params, D, K, R, P
+    global params,nodetect_limit, Kp, Kp_omg, Kd, framerate,ifs
+    global D, K, R, P
     if config_file is None:
         config_file = open('default.yaml','r')
     
     params = yaml.load(config_file.read())
-
+    nodetect_limit = params["nodetect_limit"]
+    Kp = params["Kp"]
+    Kd = params["Kd"]
+    Kp_omg = params["Kp_omg"]
+    framerate = params["framerate"]
+    ifs = 1.0/framerate
     d = params['distortion_coefficients']
     D =np.array( d['data'], dtype=np.float64 ).reshape((d['rows'],d['cols']))
     
