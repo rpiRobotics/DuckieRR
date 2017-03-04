@@ -38,6 +38,11 @@ params = None
 cam = None
 drive = None
 
+log_time = []
+log_vel = []
+log_omg = []
+log_acc = []
+
 D = np.array([],dtype=np.float64)
 K = np.array([],dtype=np.float64)
 R = np.array([],dtype=np.float64)
@@ -264,6 +269,12 @@ def run_main_loop():
         c_err = float((c0-cX))/(im_w/2) # normalize
         omg = Kp_omg*c_err
         
+        # LOG EVERYTHING
+        log_acc.append(acc)
+        log_vel.append(vel)
+        log_omg.append(omg)
+        log_time.append(time.time())
+
         # SEND THE COMMAND TO THE MOTORS
         drive.carCmd(vel, omg)        
         
@@ -279,6 +290,15 @@ def run_main_loop():
 
         
     print "Average Loop Freq: %f"%(1.0/avg_time)
+    # write data to log file
+    import csv 
+    filename = time.strftime("%Y-%m-%d-%H-%M-%S") + '.csv'
+    with open(filename, 'wb') as myfile:
+        fieldnames = ['time','acc','vel','omg']
+        wr = csv.DictWriter(myfile,fieldnames)
+        wr.writeheader()
+        wr.writerows({'time': log_time, 'acc': log_acc, 'vel': log_vel, 'omg':log_omg})
+
 
 
 def getParams(config_file):
@@ -349,6 +369,7 @@ if __name__ == '__main__':
             
     vel_max = drive.limit
     drive.trim = -0.02
+    drive.gain = 2.0
 
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()
