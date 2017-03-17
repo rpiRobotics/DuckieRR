@@ -105,9 +105,9 @@ def getParams(config_file):
     # load default params
     global params
     if config_file is None:
-        config_file = 'default.yaml'
-    with open(config_file, 'r') as f:
-        params = yaml.load(f.read())
+        config_file = open('default.yaml','r')
+    
+    params = yaml.load(config_file.read())
 
 def updateParam(name, value):
     global params

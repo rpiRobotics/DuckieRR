@@ -12,6 +12,9 @@ import thread
 # Define a bunch of globals
 nodetect_limit = 15
 
+wn_divide = 5
+zeta = 10
+
 acc_min = -1.0
 acc_max = 1.0
 
@@ -242,16 +245,8 @@ def run_main_loop():
                 break
 
         # compute the derivative
-        alpha_dot = (alpha-alpha_prev)/ifs
-        
-        # keep the last 5 values
-        alpha_dot_list[framenum%5] = alpha_dot
+        alpha_dot = (2./ifs)*(alpha-alpha_prev)/(alpha+alpha_prev)
 
-        if framenum < 4:
-            alpha_dot_avg = alpha_dot
-        else:
-            # implement a moving average
-            alpha_dot_avg = np.mean(alpha_dot_list)
 
         # save the last value
         alpha_prev = alpha 
@@ -259,7 +254,7 @@ def run_main_loop():
         # Determine controller action
         ang_err = (1.0/alpha)-(1.0/alpha_d)
 
-        acc = Kp*ang_err + Kd*alpha_dot_avg
+        acc = Kp*ang_err + Kd*alpha_dot
         acc = np.clip(acc,acc_min,acc_max)
 
         vel += acc*ifs
@@ -294,10 +289,9 @@ def run_main_loop():
     import csv 
     filename = time.strftime("%Y-%m-%d-%H-%M-%S") + '.csv'
     with open(filename, 'wb') as myfile:
-        fieldnames = ['time','acc','vel','omg']
-        wr = csv.DictWriter(myfile,fieldnames)
-        wr.writeheader()
-        wr.writerows({'time': log_time, 'acc': log_acc, 'vel': log_vel, 'omg':log_omg})
+        wr = csv.writer(myfile)
+        wr.writerow(data.keys())
+        wr.writerows(zip(*data.values()))
 
 
 
@@ -373,7 +367,10 @@ if __name__ == '__main__':
 
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()
-    
+   
+    Kp = (2*np.pi*framerate/wn_divide)**2
+    Kd = -2*zeta*np.sqrt(Kp)/alpha_d**2 
+
     # Run the main loop
     run_main_loop()
 

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(DuckieRR)
+SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 SET (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/local/lib/cmake")
 

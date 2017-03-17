@@ -9,33 +9,6 @@ import RobotRaconteur as RR
 
 RRN = RR.RobotRaconteurNode.s
 
-
-drive_servicedef="""
-#Service to provide interface to Duckiebot wheels
-service Duckiebot.Drive
-
-option version 0.8
-
-object Drive
-
-property uint8 eStop
-property double gain
-property double trim
-property double baseline
-property double radius
-property double k
-property double limit
-
-
-function void wheelCmd(double vL, double vR)
-function void carCmd(double v, double omega)
-function void toggleEStop()
-function void resetParams()
-
-end object
-
-"""
-
 class DriveNode(RRNodeInterface):
     def __init__(self):
         self.node_name = "drive"
@@ -193,11 +166,11 @@ node_name: Duckiebot.Drive
 
 objects:
     - name: Drive
-      robdef: %s
+      robdef: ${DRIVE_ROBDEF}
       class: DriveNode.DriveNode
 
 tcp_port: %d
-    """%(FormatRobdefString(drive_servicedef), args.port)
+    """%(args.port)
     launch_config = yaml.load(launch_file)
     
     LaunchRRNode(**launch_config)
