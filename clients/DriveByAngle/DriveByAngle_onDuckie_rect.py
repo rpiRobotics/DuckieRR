@@ -4,36 +4,30 @@ import time
 import cv2
 import numpy as np
 from duckie_utils.image import *
-#import matplotlib.pyplot as plt
 import sys, argparse
 import yaml
 import thread
 
 # Define a bunch of globals
-nodetect_limit = 15
+nodetect_limit = 50
 
-wn_divide = 5
-zeta = 10
+wn_divide = 5; zeta = 10
 
-acc_min = -1.0
-acc_max = 1.0
+acc_min = -1.0; acc_max = 1.0
 
-vel_min = -0.5
-vel_max = 1.0
+vel_min = -0.5; vel_max = 1.0
 
 alpha_d = 0.0
-Kp = 1.0 #2.5
-Kd = -2.0
+K1 = 1.0 #2.5
+K2 = -2.0
 
-Kp_omg = 0.95
+K_omg = 0.95
 
-framerate = 15
+framerate = 10
 ifs = 1.0/framerate
 
-im_w = 0
-im_h = 0
-c0 = 0
-r0 = 0  
+im_w = 0; im_h = 0
+c0 = 0; r0 = 0  
 
 keypress = False
 params = None
@@ -53,9 +47,6 @@ P = np.array([],dtype=np.float64)
 map1 = np.ndarray(shape=(480,640, 1),dtype=np.float32)
 map2 = np.ndarray(shape=(480,640, 1),dtype=np.float32)
 
-def donothing(x):
-    pass
-
 def angle_cos(p0,p1,p2):
     '''
                        |u . v|
@@ -65,25 +56,13 @@ def angle_cos(p0,p1,p2):
     d1,d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
     return abs( np.dot(d1,d2)/np.sqrt(np.dot(d1,d1)*np.dot(d2,d2)))
 
-def detectVehicle(gray):
+def detectVehicle(grayRaw):
     '''
     Image processing to reliably extract the square tag in an image.
     '''
-    
-    '''
-    # CORNER DETECTION
-    # not that useful for real images...
-    
-    # Detect corners
-    gray_flt = np.float32(gray)
-    # blockSize - size of window / neighborhood
-    # ksize - Aperature param of Sobel derivative
-    # k - Harris detector free parameter
-    corners = cv2.cornerHarris(gray_flt, blockSize=2, ksize=3, k=0.04)
-    corners = cv2.dilate(corners,None) 
-
-    gray_BGR[corners>params['HarrisThresh']*corners.max()] = [0,0,255]
-    '''
+    # Remap the distorted image.
+    gray = np.ndarray(shape=grayRaw.shape,dtype=np.uint8)
+    cv2.remap(grayRaw,map1,map2,cv2.INTER_LINEAR,gray)
 
     # SHAPE DETECTION
     # Color image with some kind of color filter would probably work even better
@@ -106,6 +85,7 @@ def detectVehicle(gray):
         binIm:      the binary image created by thresholding
     '''
     threshIm = cv2.threshold(blurred, params['BinaryThresh'], maxval, cv2.THRESH_BINARY_INV)[1]
+    
     '''
     FINDCONTOURS
         im_new, contours, hierarchy  = findContours(im, ret_mode, approx_meth:
@@ -164,10 +144,8 @@ def get_initial_detection():
         # if there were other things going on, we should subscribe to a stream
         # but since this is the only thing using the camera, its ok
         grayRaw = DuckieImageToGrayMat(cam.captureImage())
-        gray = np.ndarray(shape=grayRaw.shape,dtype=np.uint8)
-        cv2.remap(grayRaw,map1,map2,cv2.INTER_LINEAR,gray)
         
-        detections = detectVehicle(gray)
+        detections = detectVehicle(grayRaw)
         if len(detections) > 0:
             # choose the largest rectangle...
             i_max = np.argmax([cv2.contourArea(detections[i]) for i in xrange(len(detections))])
@@ -183,7 +161,7 @@ def get_initial_detection():
     
     w = np.max(verts[:,0]) - np.min(verts[:,0])
 
-    f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
+    f = 1; # the focal length of the camera technically... but it doesn't really matter
     alpha = 2*np.arctan(w/(2*f))
     
     return alpha
@@ -209,10 +187,8 @@ def run_main_loop():
         # if there were other things going on, we should subscribe to a stream
         # but since this is the only thing using the camera, its ok
         grayRaw = DuckieImageToGrayMat(cam.captureImage())
-        gray = np.ndarray(shape=grayRaw.shape,dtype=np.uint8)
-        cv2.remap(grayRaw,map1,map2,cv2.INTER_LINEAR,gray)
          
-        detections = detectVehicle(gray)
+        detections = detectVehicle(grayRaw)
         if len(detections) > 0:
             nodetect_count = 0
             # choose the largest rectangle...
@@ -228,7 +204,7 @@ def run_main_loop():
                 cX = int(M["m10"]/M["m00"]) #col
                 cY = int(M["m01"]/M["m00"]) #row
 
-            f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
+            f = 1; # the focal length of the camera technically... but it doesn't really matter
             alpha = 2*np.arctan(w/(2*f))
 
 
@@ -254,7 +230,7 @@ def run_main_loop():
         # Determine controller action
         ang_err = (1.0/alpha)-(1.0/alpha_d)
 
-        acc = Kp*ang_err + Kd*alpha_dot
+        acc = K1*ang_err + K2*alpha_dot
         acc = np.clip(acc,acc_min,acc_max)
 
         vel += acc*ifs
@@ -262,7 +238,7 @@ def run_main_loop():
         
         # determine the steering controller accuracy
         c_err = float((c0-cX))/(im_w/2) # normalize
-        omg = Kp_omg*c_err
+        omg = K_omg*c_err
         
         # LOG EVERYTHING
         log_acc.append(acc)
@@ -297,16 +273,19 @@ def run_main_loop():
 
 def getParams(config_file):
     # load default params
-    global params,nodetect_limit, Kp, Kp_omg, Kd, framerate,ifs
+    global params,nodetect_limit, K1, K_omg, K2, framerate,ifs
     global D, K, R, P
+    global wn_divide, zeta
     if config_file is None:
         config_file = open('default.yaml','r')
     
     params = yaml.load(config_file.read())
     nodetect_limit = params["nodetect_limit"]
-    Kp = params["Kp"]
-    Kd = params["Kd"]
-    Kp_omg = params["Kp_omg"]
+    wn_divide = params["wn_divide"]
+    zeta = params["zeta"]
+    K1 = params["K1"]
+    K2 = params["K2"]
+    K_omg = params["K_omg"]
     framerate = params["framerate"]
     ifs = 1.0/framerate
     d = params['distortion_coefficients']
@@ -368,8 +347,8 @@ if __name__ == '__main__':
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()
    
-    Kp = (2*np.pi*framerate/wn_divide)**2
-    Kd = -2*zeta*np.sqrt(Kp)/alpha_d**2 
+    K1 = (2*np.pi*framerate/wn_divide)**2
+    K2 = -2*zeta*np.sqrt(K1)/alpha_d**2 
 
     # Run the main loop
     run_main_loop()

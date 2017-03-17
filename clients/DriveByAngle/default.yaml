@@ -1,14 +1,17 @@
-nodetect_limit: 15
-framerate: 15
+nodetect_limit: 50
+framerate: 10
 
-Kp: 1.0
-Kd: -2.0
-Kp_omg: 0.95
+K1: 1.0
+K2: -2.0
+K_omg: 0.95
 
 acc_min: -1.0
 acc_max: 1.0
 vel_min: -0.5
 vel_max: 1.0
+
+wn_divide: 5
+zeta: 10
 
 HarrisThresh: 0.1
 BinaryThresh: 80

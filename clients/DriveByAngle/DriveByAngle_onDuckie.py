@@ -4,36 +4,30 @@ import time
 import cv2
 import numpy as np
 from duckie_utils.image import *
-#import matplotlib.pyplot as plt
 import sys, argparse
 import yaml
 import thread
 
 # Define a bunch of globals
-nodetect_limit = 15
+nodetect_limit = 50
 
-wn_divide = 5
-zeta = 10
+wn_divide = 5; zeta = 10
 
-acc_min = -1.0
-acc_max = 1.0
+acc_min = -1.0; acc_max = 1.0
 
-vel_min = -0.5
-vel_max = 1.0
+vel_min = -0.5; vel_max = 1.0
 
 alpha_d = 0.0
-Kp = 1.0 #2.5
-Kd = -2.0
+K1 = 1.0 #2.5
+K2 = -2.0
 
-Kp_omg = 0.95
+K_omg = 0.95
 
-framerate = 15
+framerate = 10
 ifs = 1.0/framerate
 
-im_w = 0
-im_h = 0
-c0 = 0
-r0 = 0  
+im_w = 0; im_h = 0
+c0 = 0; r0 = 0  
 
 keypress = False
 params = None
@@ -46,8 +40,6 @@ log_vel = []
 log_omg = []
 log_acc = []
 
-def donothing(x):
-    pass
 
 def angle_cos(p0,p1,p2):
     '''
@@ -61,21 +53,6 @@ def angle_cos(p0,p1,p2):
 def detectVehicle(gray):
     '''
     Image processing to reliably extract the square tag in an image.
-    '''
-    
-    '''
-    # CORNER DETECTION
-    # not that useful for real images...
-    
-    # Detect corners
-    gray_flt = np.float32(gray)
-    # blockSize - size of window / neighborhood
-    # ksize - Aperature param of Sobel derivative
-    # k - Harris detector free parameter
-    corners = cv2.cornerHarris(gray_flt, blockSize=2, ksize=3, k=0.04)
-    corners = cv2.dilate(corners,None) 
-
-    gray_BGR[corners>params['HarrisThresh']*corners.max()] = [0,0,255]
     '''
 
     # SHAPE DETECTION
@@ -99,6 +76,7 @@ def detectVehicle(gray):
         binIm:      the binary image created by thresholding
     '''
     threshIm = cv2.threshold(blurred, params['BinaryThresh'], maxval, cv2.THRESH_BINARY_INV)[1]
+    
     '''
     FINDCONTOURS
         im_new, contours, hierarchy  = findContours(im, ret_mode, approx_meth:
@@ -174,7 +152,7 @@ def get_initial_detection():
     
     w = np.max(verts[:,0]) - np.min(verts[:,0])
 
-    f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
+    f = 1; # the focal length of the camera technically... but it doesn't really matter
     alpha = 2*np.arctan(w/(2*f))
     
     return alpha
@@ -217,7 +195,7 @@ def run_main_loop():
                 cX = int(M["m10"]/M["m00"]) #col
                 cY = int(M["m01"]/M["m00"]) #row
 
-            f = 1; # the focal length of the camera technically... but it (probably) doesn't matter
+            f = 1; # the focal length of the camera technically... but it doesn't really matter
             alpha = 2*np.arctan(w/(2*f))
 
 
@@ -234,17 +212,8 @@ def run_main_loop():
                 break
 
         # compute the derivative
-        #alpha_dot = (alpha-alpha_prev)/ifs
         alpha_dot = (2./ifs)*(alpha-alpha_prev)/(alpha+alpha_prev)
 
-        # keep the last 5 values
-        #alpha_dot_list[framenum%5] = alpha_dot
-
-        #if framenum < 4:
-        #    alpha_dot_avg = alpha_dot
-        #else:
-            # implement a moving average
-        #    alpha_dot_avg = np.mean(alpha_dot_list)
 
         # save the last value
         alpha_prev = alpha 
@@ -252,7 +221,7 @@ def run_main_loop():
         # Determine controller action
         ang_err = (1.0/alpha)-(1.0/alpha_d)
 
-        acc = Kp*ang_err + Kd*alpha_dot
+        acc = K1*ang_err + K2*alpha_dot
         acc = np.clip(acc,acc_min,acc_max)
 
         vel += acc*ifs
@@ -260,7 +229,7 @@ def run_main_loop():
         
         # determine the steering controller accuracy
         c_err = float((c0-cX))/(im_w/2) # normalize
-        omg = Kp_omg*c_err
+        omg = K_omg*c_err
         
         # LOG EVERYTHING
         log_acc.append(acc)
@@ -284,8 +253,7 @@ def run_main_loop():
         
     print "Average Loop Freq: %f"%(1.0/avg_time)
     # write data to log file
-    import csv
-    data = {'time': log_time, 'acc': log_acc, 'vel': log_vel, 'omg':log_omg} 
+    import csv 
     filename = time.strftime("%Y-%m-%d-%H-%M-%S") + '.csv'
     with open(filename, 'wb') as myfile:
         wr = csv.writer(myfile)
@@ -296,15 +264,18 @@ def run_main_loop():
 
 def getParams(config_file):
     # load default params
-    global params,nodetect_limit, Kp, Kp_omg, Kd, framerate,ifs
+    global params,nodetect_limit, K1, K_omg, K2, framerate,ifs
+    global wn_divide, zeta
     if config_file is None:
         config_file = open('default.yaml','r')
     
     params = yaml.load(config_file.read())
     nodetect_limit = params["nodetect_limit"]
-    Kp = params["Kp"]
-    Kd = params["Kd"]
-    Kp_omg = params["Kp_omg"]
+    wn_divide = params["wn_divide"]
+    zeta = params["zeta"]
+    K1 = params["K1"]
+    K2 = params["K2"]
+    K_omg = params["K_omg"]
     framerate = params["framerate"]
     ifs = 1.0/framerate
 
@@ -347,16 +318,15 @@ if __name__ == '__main__':
     drive = RRN.ConnectService("rr+local:///?nodename=Duckiebot.Drive&service=Drive")
             
     vel_max = drive.limit
-    #drive.trim = -0.03
+    drive.trim = -0.02
     drive.gain = 2.0
 
     # Show detection and capture the desired distance
     alpha_d = get_initial_detection()
    
-    Kp = (2*np.pi*framerate/wn_divide)**2
-    Kd = -2*zeta*np.sqrt(Kp)/alpha_d**2 
-    print Kp
-    print Kd
+    K1 = (2*np.pi*framerate/wn_divide)**2
+    K2 = -2*zeta*np.sqrt(K1)/alpha_d**2 
+
     # Run the main loop
     run_main_loop()
 
