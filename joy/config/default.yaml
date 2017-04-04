@@ -1,0 +1,9 @@
+speed_gain: 0.41 
+steer_gain: 8.3
+car_like: 0
+steer_angle_gain: 1
+simulated_vehicle_length: 0.18
+mapping:
+  v:      LYAXIS
+  w:      RXAXIS
+  estop:  LOGITECH

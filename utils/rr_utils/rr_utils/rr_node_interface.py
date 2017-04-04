@@ -61,7 +61,7 @@ class RRNodeInterface():
             msg += "[%s] Shutting down."%(self.node_name)
             raise RuntimeError(msg)
         else:
-            msg = "WARNING: Could not connect to the %s Interface after max number (%d) of attempts.\n"%(self.node_name, nodeType, attempts)
+            msg = "[%s] WARNING: Could not connect to the %s Interface after max number (%d) of attempts.\n"%(self.node_name, nodeType, attempts)
             msg += "This interface will not be available."
             self.log(msg)
 

@@ -4,7 +4,7 @@ import numpy as np
 class Configurable():
 	"""Create a reconfigurable instance of a class.
 	Load specified parameter names from yaml file."""
-	def __init__(self, param_names,configuration):
+	def __init__(self, param_names,configuration,makePrivate=False):
 		if not isinstance(configuration, dict):
 			msg = 'Expecting a dict, obtained %r' %configuration
 			raise ValueError(msg)
@@ -22,6 +22,7 @@ class Configurable():
 			raise ValueError(msg)
 
 		assert set(given) == set(required)
+
 		for p in param_names:
 			value = configuration[p]
 			# if the list is 3 numbers, conver to an array
@@ -30,7 +31,9 @@ class Configurable():
 			configuration[p] = value
 
 		for p in param_names:
-			setattr(self, p, configuration[p])
+			if makePrivate:
+				_p = '_'+p
+			setattr(self, _p, configuration[p])
 
 		return configuration
 		

@@ -31,9 +31,9 @@ def instantiate(function_name, parameters=None):
                    (function_name, params))
             msg += '\n' + indent('%s\n%s' % (e, traceback.format_exc(e)), '> ')
             
-            msg += '\n\n One reason this might be triggered is the presence of pyc files for files that were removed.'
-            msg += '\n\n Use this command to remove them:'
-            msg += '\n\n     make clean-pyc'
+            #msg += '\n\n One reason this might be triggered is the presence of pyc files for files that were removed.'
+            #msg += '\n\n Use this command to remove them:'
+            #msg += '\n\n     make clean-pyc'
             msg += '\n\n'
             raise SemanticMistake(msg)
 

@@ -1,0 +1,37 @@
+#Service to provide interface to Logitech Joystick
+service Joy
+
+option version 0.8
+
+option constant uint8 A 0
+option constant uint8 B 1
+option constant uint8 X 2
+option constant uint8 Y 3
+option constant uint8 LB 4
+option constant uint8 RB 5
+option constant uint8 BACK 6
+option constant uint8 START 7
+option constant uint8 LOGITECH 8
+option constant uint8 LAXISBUTTON 9
+option constant uint8 RAXISBUTTON 10
+
+option constant uint8 LXAXIS 0
+option constant uint8 LYAXIS 1
+option constant uint8 LT 2
+option constant uint8 RXAXIS 3
+option constant uint8 RYAXIS 4
+option constant uint8 RT 5
+
+object Joystick
+
+property uint8{string} buttons
+property double{string} axes
+property uint8{string} dpad
+
+event buttonDown(string button)
+event buttonUp(string button)
+event axisMotion(string axis, double value)
+event dpadMotion(int8 DPADX, int8 DPADY)
+event joyChange()
+
+end object

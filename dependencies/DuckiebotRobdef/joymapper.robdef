@@ -1,0 +1,16 @@
+#Service to provide interface to Logitech Joystick
+service Duckiebot.JoyMapper
+
+option version 0.8
+
+object JoyMapper
+
+property double speed_gain
+property double steer_gain
+property uint8 car_like
+property double steer_angle_gain
+property double simulated_vehicle_length
+
+property string{string} map
+
+end object
