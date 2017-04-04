@@ -40,9 +40,9 @@ class JoyNode(RRNodeInterface):
         self.node_name = "joy"
         
         self.verbose = False
+        
         os.environ["SDL_VIDEODRIVER"] = "dummy"
-	pygame.init()
-        #pygame.display.init()
+        pygame.init()
         pygame.joystick.init()
         if not pygame.joystick.get_count():
             raise RuntimeError('No joystick detected')
@@ -52,10 +52,9 @@ class JoyNode(RRNodeInterface):
 
         self._numbuttons = self.joy.get_numbuttons()
         self._numaxes = self.joy.get_numaxes()
-	num_hats = self.joy.get_numhats()
-	if num_hats != 0:
-	    self._numaxes += 2*num_hats
-	    self.dpad = True
+        num_hats = self.joy.get_numhats()
+        if num_hats != 0:
+            self._numaxes += 2*num_hats
 
         self.buttonmap = {0:'A',1:'B',2:'X',3:'Y',
         4:'LB',5:'RB',6:'BACK',7:'START',8:'LOGITECH',
@@ -64,8 +63,6 @@ class JoyNode(RRNodeInterface):
 
         self._buttons = dict(zip(self.buttonmap.values(),[0]*self._numbuttons))
         self._axes = dict(zip(self.axesmap.values(),[0]*self._numaxes))
-
-
 
         self.buttonDown = RR.EventHook()
         self.buttonUp = RR.EventHook()
@@ -97,7 +94,6 @@ class JoyNode(RRNodeInterface):
 
     def _joystickthread(self):
         while self._running:
-            #tic = time.time()
             for event in pygame.event.get():
                 if event.type == pygame.JOYBUTTONDOWN:
                     but = event.__dict__['button']
@@ -126,7 +122,7 @@ class JoyNode(RRNodeInterface):
                     self._axes['DPADX'] = val[0]
                     self._axes['DPADY'] = val[1]
                     self.axisMotion.fire('DPADX',val[0])
-		    self.axisMotion.fire('DPADY',val[1])
+                    self.axisMotion.fire('DPADY',val[1])
                     if self.verbose:
                         print "DPad value: %r"%val
 

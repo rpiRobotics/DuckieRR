@@ -40,14 +40,14 @@ class JoyMapperNode(RRNodeInterface,Configurable):
         self.joy.joyChange += self.cbJoy
         self.newJoyData = False
 
-	self._running = True
+        self._running = True
         self._t_joyworker = threading.Thread(target=self._joyworkerthread)
         self._t_joyworker.daemon = True
         self._t_joyworker.start()
 
     def onShutdown(self):
         self._running = False
-	self._t_joyworker.join()
+        self._t_joyworker.join()
         self.drive.carCmd(0,0)
         self.log("Shutting Down JoyMapper")
         
@@ -100,7 +100,8 @@ class JoyMapperNode(RRNodeInterface,Configurable):
         ret = True
         valid_mappings = {'v':self.motion_axes, 
                           'w':self.motion_axes,
-                          'estop':self.buttons}
+                          'estop':self.buttons,
+                          'carlike':self.buttons}
         for key,value in newmap.iteritems():
             if key in valid_mappings:
                 if value not in valid_mappings[key]:
@@ -112,11 +113,11 @@ class JoyMapperNode(RRNodeInterface,Configurable):
         return ret
 
     def cbJoy(self):
-	self.newJoyData = True
+        self.newJoyData = True
 
     def _joyworkerthread(self):
-	while self._running:
-	    if self.newJoyData:
+        while self._running:
+            if self.newJoyData:
                 self.newJoyData = False
                 self.publishControl()
                 self.processButtons()
@@ -138,7 +139,9 @@ class JoyMapperNode(RRNodeInterface,Configurable):
     def processButtons(self):
         if self.joy.buttons[self._mapping['estop']] == 1:
             self.drive.toggleEStop()
-
+        if self.joy.buttons[self._mapping['carlike']] == 1:
+            self._car_like ^= 1 # (XOR)
+            self.log('car_like: %d')%self._car_like
 
 if __name__ == '__main__':
     # Parse command line arguments

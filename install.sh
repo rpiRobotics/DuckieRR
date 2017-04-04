@@ -21,8 +21,23 @@ DEPEND_DIR="$BASE_DIR/dependencies"
 # Any other packages...
 # ------------------------
 echo "CHECKING FOR NECESSARY PACKAGES..."
-sudo apt-get install libyaml-cpp-dev -y
+sudo apt-get install -y libyaml-cpp-dev 
+sudo apt-get install -y libsdl1.2-dev libsdl-{image1.2-dev,mixer1.2-dev,ttf2.0-dev} \
+	libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev libtiff5-dev 
 sudo apt-get install -y python-{serial,numpy,opencv,pygame}
+
+# update pygame
+sudo pip install -U pygame # want version 1.9.3
+
+# not sure if this is all necessary... but it doesnt hurt anything
+sudo addgroup --system console
+sudo chgrp console /dev/console
+sudo chmod g+rw /dev/console
+sudo usermod -a -G console ubuntu
+sudo usermod -a -G tty ubuntu
+sudo usermod -a -G video ubuntu
+sudo udevadm trigger 
+
 
 # ------------------------
 # Install Boost Libraries
@@ -94,7 +109,7 @@ if [ "$ON_PI" = true ]; then
 		mkdir -p build
 		cd build 
 		cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DPYTHON2_EXECUTABLE=/usr/bin/python -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 -DPYTHON_INCLUDE_DIR2=/usr/include/arm-linux-gnueabihf/python2.7 -DPYTHON_LIBRARY=/usr/lib/arm-linux-gnueabihf/libpython2.7.so -DPYTHON2_NUMPY_INCLUDE_DIRS=/usr/lib/python2.7/dist-packages/numpy/core/include/ ..
-		make -j7 
+		make -j5
 		sudo make install
 	fi
 
@@ -132,7 +147,7 @@ cd $ROBDEF_DIR
 mkdir -p build
 cd build
 cmake ..
-make -j7
+make -j5
 sudo make install
 
 # ------------------------
@@ -143,5 +158,5 @@ cd $BASE_DIR
 mkdir -p build
 cd build
 cmake ..
-make -j7
+make -j5
 sudo make install

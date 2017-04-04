@@ -4,6 +4,7 @@ car_like: 0
 steer_angle_gain: 1
 simulated_vehicle_length: 0.18
 mapping:
-  v:      LYAXIS
-  w:      RXAXIS
-  estop:  LOGITECH
+  v:        LYAXIS
+  w:        RXAXIS
+  estop:    LOGITECH
+  carlike:  X
