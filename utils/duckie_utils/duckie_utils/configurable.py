@@ -31,6 +31,7 @@ class Configurable():
 			configuration[p] = value
 
 		for p in param_names:
+			_p = p
 			if makePrivate:
 				_p = '_'+p
 			setattr(self, _p, configuration[p])
