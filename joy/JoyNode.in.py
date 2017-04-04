@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import os
 import argparse
 import numpy as np
 import time
@@ -17,6 +18,8 @@ from rr_utils import *
 # Axis 3 - Raxis - Left(-1)/Right(1)
 # Axis 4 - Raxis - Up(-1)/Down(1)
 # Axis 5 - RT - Up(-1)/Down(1)
+# Axis 6 - DPADX - Left(-1)/Right(1)
+# Axis 7 - DPADY - Up(1)/Down(-1)
 # Button 0 - A
 # Button 1 - B
 # Button 2 - X
@@ -28,7 +31,7 @@ from rr_utils import *
 # Button 8 - Logitech
 # Button 9 - Laxis press
 # Button 10- Raxis press
-# Hat 0 - DPAD (X,Y) -- (-1=Left/Down, +1=Right/Up) 
+# (Hat 0) - DPAD(X,Y) -- (-1=Left/Down, +1=Right/Up) -- only on some machines
 # Don't SWITCH THE D/X SWITCH!
 # mode and vibration not mapped
 
@@ -37,8 +40,9 @@ class JoyNode(RRNodeInterface):
         self.node_name = "joy"
         
         self.verbose = False
-        
-        pygame.init()
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
+	pygame.init()
+        #pygame.display.init()
         pygame.joystick.init()
         if not pygame.joystick.get_count():
             raise RuntimeError('No joystick detected')
@@ -48,24 +52,24 @@ class JoyNode(RRNodeInterface):
 
         self._numbuttons = self.joy.get_numbuttons()
         self._numaxes = self.joy.get_numaxes()
-
+	num_hats = self.joy.get_numhats()
+	if num_hats != 0:
+	    self._numaxes += 2*num_hats
+	    self.dpad = True
 
         self.buttonmap = {0:'A',1:'B',2:'X',3:'Y',
         4:'LB',5:'RB',6:'BACK',7:'START',8:'LOGITECH',
         9:'LAXISBUTTON', 10:'RAXISBUTTON'}
-        self.axesmap={0:'LXAXIS',1:'LYAXIS',2:'LT',3:'RXAXIS',4:'RYAXIS',5:'RT'}
-        self.dpadmap={0:'DPADX',1:'DPADY'}
+        self.axesmap={0:'LXAXIS',1:'LYAXIS',2:'LT',3:'RXAXIS',4:'RYAXIS',5:'RT',6:'DPADX',7:'DPADY'}
 
         self._buttons = dict(zip(self.buttonmap.values(),[0]*self._numbuttons))
         self._axes = dict(zip(self.axesmap.values(),[0]*self._numaxes))
-        self._dpad = dict(zip(self.dpadmap.values(),[0]*2))
 
-        #self.button_map
+
 
         self.buttonDown = RR.EventHook()
         self.buttonUp = RR.EventHook()
         self.axisMotion = RR.EventHook()
-        self.dpadMotion = RR.EventHook()
         self.joyChange = RR.EventHook()
 
         # start processing threads
@@ -90,13 +94,10 @@ class JoyNode(RRNodeInterface):
     @property
     def axes(self):
         return self._axes
-    @property
-    def dpad(self):
-        return self._dpad
 
     def _joystickthread(self):
         while self._running:
-            tic = time.time()
+            #tic = time.time()
             for event in pygame.event.get():
                 if event.type == pygame.JOYBUTTONDOWN:
                     but = event.__dict__['button']
@@ -122,9 +123,10 @@ class JoyNode(RRNodeInterface):
 
                 if event.type == pygame.JOYHATMOTION:
                     val = list(event.__dict__['value'])
-                    self._dpad['DPADX'] = val[0]
-                    self._dpad['DPADY'] = val[1]
-                    self.dpadMotion.fire(val[0],val[1])
+                    self._axes['DPADX'] = val[0]
+                    self._axes['DPADY'] = val[1]
+                    self.axisMotion.fire('DPADX',val[0])
+		    self.axisMotion.fire('DPADY',val[1])
                     if self.verbose:
                         print "DPad value: %r"%val
 

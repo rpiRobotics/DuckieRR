@@ -38,9 +38,17 @@ class JoyMapperNode(RRNodeInterface,Configurable):
         self.drive = self.FindAndConnect("Duckiebot.Drive.Drive",required=False)
         
         self.joy.joyChange += self.cbJoy
-        
+        self.newJoyData = False
+
+	self._running = True
+        self._t_joyworker = threading.Thread(target=self._joyworkerthread)
+        self._t_joyworker.daemon = True
+        self._t_joyworker.start()
 
     def onShutdown(self):
+        self._running = False
+	self._t_joyworker.join()
+        self.drive.carCmd(0,0)
         self.log("Shutting Down JoyMapper")
         
 
@@ -104,20 +112,28 @@ class JoyMapperNode(RRNodeInterface,Configurable):
         return ret
 
     def cbJoy(self):
-        self.publishControl()
-        self.processButtons()
+	self.newJoyData = True
+
+    def _joyworkerthread(self):
+	while self._running:
+	    if self.newJoyData:
+                self.newJoyData = False
+                self.publishControl()
+                self.processButtons()
+            time.sleep(0.01)
 
     def publishControl(self):
         v = -self.joy.axes[self._mapping['v']]*self._speed_gain #(-) so that up is +'ve
         if self.car_like:
             # Implement Bicycle Kinematics - Nonholonomic Kinematics
             # see https://inst.eecs.berkeley.edu/~ee192/sp13/pdf/steer-control.pdf
-            steering_angle = self.joy.axes[self._mapping['w']]*self._steer_angle_gain
+            steering_angle = -self.joy.axes[self._mapping['w']]*self._steer_angle_gain
             w = v / self._simulated_vehicle_length * np.tan(steering_angle)
         else:
             # Holonomic Kinematics for Normal Driving
-            w = self.joy.axes[self._mapping['w']] * self._steer_gain
-        self.drive.carCmd(v,w)
+            w = -self.joy.axes[self._mapping['w']] * self._steer_gain
+            #print "(%0.3f, %0.3f)"%(v,w)
+            self.drive.carCmd(v,w)
 
     def processButtons(self):
         if self.joy.buttons[self._mapping['estop']] == 1:

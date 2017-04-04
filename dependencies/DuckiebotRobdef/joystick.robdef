@@ -21,17 +21,18 @@ option constant uint8 LT 2
 option constant uint8 RXAXIS 3
 option constant uint8 RYAXIS 4
 option constant uint8 RT 5
+option constant uint8 DPADX 6
+option constant uint8 DPADY 7
 
 object Joystick
 
 property uint8{string} buttons
 property double{string} axes
-property uint8{string} dpad
 
 event buttonDown(string button)
 event buttonUp(string button)
 event axisMotion(string axis, double value)
-event dpadMotion(int8 DPADX, int8 DPADY)
+
 event joyChange()
 
 end object
