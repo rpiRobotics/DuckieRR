@@ -32,7 +32,7 @@ class LineDetectorHSV(Configurable, LineDetectorInterface):
     def _colorFilter(self, color):
         # threshold colors in HSV space
         if color == 'white':
-            bw = cv2.inRange(self.hsv, self.hsv_white1,self.hsv_white2)
+            bw = cv2.inRange(self.hsv, self.hsv_white1, self.hsv_white2)
         elif color == 'yellow':
             bw = cv2.inRange(self.hsv, self.hsv_yellow1, self.hsv_yellow2)
         elif color == 'red':
@@ -51,11 +51,11 @@ class LineDetectorHSV(Configurable, LineDetectorInterface):
 
         return bw, edge_color
 
-    def _findEdge(self,gray):
+    def _findEdge(self, gray):
         edges = cv2.Canny(gray, self.canny_thresholds[0], self.canny_thresholds[1], apertureSize=3)
         return edges
 
-    def _HoughLine(self,edge):
+    def _HoughLine(self, edge):
         lines = cv2.HoughLinesP(edge, 1, np.pi/180, self.hough_threshold, np.empty(1), self.hough_min_line_length, self.hough_max_line_gap)
         if lines is not None:
             lines = np.array(lines[0])

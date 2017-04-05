@@ -28,7 +28,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         Configurable.__init__(self,param_names,configuration)
 
         self._segments = []
-        self.RRConsts = RRN.GetConstants("Duckiebot")
+        self.DuckieConsts = RRN.GetConstants("Duckiebot")
         
         # Thread lock
         self.thread_lock = threading.Lock()
@@ -54,6 +54,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         
         # Find and connect to the image service
         self.duckie_cam = self.FindAndConnect("Duckiebot.Camera.Camera")
+        duckie_cam.changeFormat('jpeg')
         
         # connect to the pipe
         self.imstream = self.duckie_cam.ImageStream.Connect(-1) # connect to the pipe
@@ -148,15 +149,15 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         
         if len(white.lines) > 0:
             lines_normalized_white = ((white.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_white, white.normals, self.RRConsts.WHITE))
+            self._segments.extend(self.toSegment(lines_normalized_white, white.normals, self.DuckieConsts.WHITE))
         
         if len(yellow.lines) > 0:
             lines_normalized_yellow = ((yellow.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.RRConsts.YELLOW))
+            self._segments.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.DuckieConsts.YELLOW))
         
         if len(red.lines) > 0:
             lines_normalized_red = ((red.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_red, red.normals, self.RRConsts.RED))
+            self._segments.extend(self.toSegment(lines_normalized_red, red.normals, self.DuckieConsts.RED))
 
         self.newSegments.fire(self._segments)
         self.intermittent_log('# segments: white %3d yellow %3d red %3d' % (len(white.lines),
@@ -165,23 +166,28 @@ class LineDetectorNode(Configurable,RRNodeInterface):
 
     def toSegment(self, lines, normals, color):
         segmentList = []
+        segment = RRN.NewStructure("Duckiebot.Segment")
+        segment.pixels_normalized = [RRN.NewStructure("Duckiebot.Segment")]*2
+        segment.normal = RRN.NewStructure("Duckiebot.Vector2D")
+        vec = RRN.NewStructure("Duckiebot.Vector2D")
         for x1,y1,x2,y2,norm_x,norm_y in np.hstack((lines,normals)):
-            segment = RRN.NewStructure("Duckiebot.Segment")
-            segment.pixels_normalized = []
+            #segment.pixels_normalized = []
             segment.color = color
-
-            vec = RRN.NewStructure("Duckiebot.Vector2D")
-            vec.x = x1
-            vec.y = y1
-            segment.pixels_normalized.append(vec)
-            
-            vec.x = x2
-            vec.y = y2
-            segment.pixels_normalized.append(vec)
-            
-            vec.x = norm_x
-            vec.y = norm_y
-            segment.normal = vec
+            #vec.x = x1
+            #vec.y = y1
+            #segment.pixels_normalized.append(vec)
+            #vec.x = x2
+            #vec.y = y2
+            #segment.pixels_normalized.append(vec)
+            segment.pixels_normalized[0].x = x1
+            segment.pixels_normalized[0].y = y1
+            segment.pixels_normalized[1].x = x2
+            segment.pixels_normalized[1].y = y2
+            #vec.x = norm_x
+            #vec.y = norm_y
+            #segment.normal = vec
+            segment.normal.x = norm_x
+            segment.normal.y = norm_y
 
             segmentList.append(segment)
         return segmentList
