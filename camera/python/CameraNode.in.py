@@ -114,22 +114,16 @@ class CameraNode(RRNodeInterface):
                 stream.seek(0)
                 data = stream.getvalue()
                 self._image.data = bytearray(data)
-            with self._imagestream_endpoints_lock:
-                # send to pipe endpoints
-                for ep in self._imagestream_endpoints:
-                    try:
-                        # try to send the frame to the connected endpoint
-                        pipe_ep = self._imagestream_endpoints[ep]
-                        pipe_ep.SendPacket(self._image)
-                    except:
-                        # if there is an error, assume endpoint has closed
-                        self._ImageStream_pipeclosed(pipe_ep)
             
+            # send the new frame to the broadcaster using AsyncSendPacket
+            # and a blank handler. We don't really care when the send finishes
+            # since we are using the "backlog" flow control in the broadcaster
+            self._imagestream_broadcaster.AsyncSendPacket(self._image,lamda: None)
             # clear stream
             stream.seek(0)
             stream.truncate()
 
-            time.sleep(0.001)
+            time.sleep(0.0001)
 
     @property
     def ImageStream(self):          
@@ -137,25 +131,9 @@ class CameraNode(RRNodeInterface):
     @ImageStream.setter
     def ImageStream(self,value):
         self._imagestream = value
-        # Set the PipeConnectCallback to _ImageStream_pipeconnect
-        value.PipeConnectCallback=self._ImageStream_pipeconnect
-
-    def _ImageStream_pipeconnect(self, pipe_ep):
-        "Called when the PipeEndpoint Connects. pipe_ep is the endpoint"
-        # lock the _imagestream_endpoints dictionary, and place pipe_ep in it
-        with self._imagestream_endpoints_lock:
-            # Add pipe_ep to the dictionary by endpoint and index
-            self._imagestream_endpoints[(pipe_ep.Endpoint, pipe_ep.Index)]=pipe_ep
-            # set the function to call when the pip endpoint is closed
-            pipe_ep.PipeEndpointClosedCallback = self._ImageStream_pipeclosed
-
-    def _ImageStream_pipeclosed(self,pipe_ep):
-        with self._imagestream_endpoints_lock:
-            try:
-                del(self._imagestream_endpoints[(pipe_ep.Endpoint, pipe_ep.Index)])
-            except:
-                traceback.print_exc()
-
+        # Create a PipeBroadcaster and allow a backlog of 3 images.
+        self._imagestream_broadcaster=RR.PipeBroadcaster(value,3)
+    
     @property
     def framerate(self):
         return self._framerate

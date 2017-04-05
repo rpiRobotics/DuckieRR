@@ -138,11 +138,23 @@ RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > CameraNode::get_Ima
 	return _imagestream;
 }
 void CameraNode::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > value){
+	recursive_mutex::scoped_lock lock(global_lock);
 	_imagestream  = value;
-	_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
+
+	//Use the PipeBroadcaster to send frames, and specify a backlog of 3
+	_imagestream_broadcaster = boost::make_shared<PipeBroadcaster<RR_SHARED_PTR<Image > > >();
+	_imagestream_broadcaster->Init(_imagestream, 3);
+	
+	//_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
 	// _1 is a placeholder that tells boost _imagestream_pipeconnect expects 1 additional arguement
 }
 
+void async_frame_send_handler()
+{
+
+}
+
+/*
 void CameraNode::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep){
 	recursive_mutex::scoped_lock lock(global_lock);
 
@@ -166,7 +178,7 @@ void CameraNode::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::s
 	catch(...){}
 }
 
-
+*/
 /********************************
  *		Private Functions
  ********************************/
@@ -184,8 +196,19 @@ void CameraNode::_capture_threadfunc(){
 		// Capture a frame
 		boost::shared_ptr<Image> frame = captureImage();
 
-		recursive_mutex::scoped_lock lock(global_lock);
-
+		try
+		{
+			recursive_mutex::scoped_lock lock(global_lock);
+			_imagestream_broadcaster->AsyncSendPacket(frame, async_frame_send_handler);
+		}
+		catch(std::exception&)
+		{
+			if(_capturing)
+			{
+				cout << "warning: error sending frame" << endl;
+			}
+		}
+		/*
 		// determine all connected endpoints
 		vector<uint32_t> endpoints;
 		for (map<uint32_t, map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > > >::iterator e=_imagestream_endpoints.begin(); e!=_imagestream_endpoints.end(); ++e){
@@ -224,7 +247,7 @@ void CameraNode::_capture_threadfunc(){
 				}
 			}
 		}
-
+		*/
 		boost::this_thread::sleep_until(time_limit);
 	}
 }
