@@ -118,7 +118,7 @@ class CameraNode(RRNodeInterface):
             # send the new frame to the broadcaster using AsyncSendPacket
             # and a blank handler. We don't really care when the send finishes
             # since we are using the "backlog" flow control in the broadcaster
-            self._imagestream_broadcaster.AsyncSendPacket(self._image,lamda: None)
+            self._imagestream_broadcaster.AsyncSendPacket(self._image,lambda: None)
             # clear stream
             stream.seek(0)
             stream.truncate()

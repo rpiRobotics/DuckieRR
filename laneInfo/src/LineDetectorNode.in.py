@@ -54,7 +54,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         
         # Find and connect to the image service
         self.duckie_cam = self.FindAndConnect("Duckiebot.Camera.Camera")
-        duckie_cam.changeFormat('jpeg')
+        #self.duckie_cam.changeFormat('jpeg')
         
         # connect to the pipe
         self.imstream = self.duckie_cam.ImageStream.Connect(-1) # connect to the pipe
@@ -167,7 +167,8 @@ class LineDetectorNode(Configurable,RRNodeInterface):
     def toSegment(self, lines, normals, color):
         segmentList = []
         segment = RRN.NewStructure("Duckiebot.Segment")
-        segment.pixels_normalized = [RRN.NewStructure("Duckiebot.Segment")]*2
+        segment.pixels_normalized = [RRN.NewStructure("Duckiebot.Vector2D"),
+                                     RRN.NewStructure("Duckiebot.Vector2D")]
         segment.normal = RRN.NewStructure("Duckiebot.Vector2D")
         vec = RRN.NewStructure("Duckiebot.Vector2D")
         for x1,y1,x2,y2,norm_x,norm_y in np.hstack((lines,normals)):
