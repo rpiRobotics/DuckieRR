@@ -131,8 +131,9 @@ class CameraNode(RRNodeInterface):
     @ImageStream.setter
     def ImageStream(self,value):
         self._imagestream = value
-        # Create a PipeBroadcaster and allow a backlog of 3 images.
-        self._imagestream_broadcaster=RR.PipeBroadcaster(value,3)
+        # Create a PipeBroadcaster and only allow the most recent...
+        # Should this be a wire then?
+        self._imagestream_broadcaster=RR.PipeBroadcaster(value,backlog=1)
     
     @property
     def framerate(self):

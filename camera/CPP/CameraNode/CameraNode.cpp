@@ -141,9 +141,10 @@ void CameraNode::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PT
 	recursive_mutex::scoped_lock lock(global_lock);
 	_imagestream  = value;
 
-	//Use the PipeBroadcaster to send frames, and specify a backlog of 3
+	//Use the PipeBroadcaster to send frames, and specify a backlog of 1
+	// Should this be a Wire then?
 	_imagestream_broadcaster = boost::make_shared<PipeBroadcaster<RR_SHARED_PTR<Image > > >();
-	_imagestream_broadcaster->Init(_imagestream, 3);
+	_imagestream_broadcaster->Init(_imagestream, 1);
 	
 	//_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
 	// _1 is a placeholder that tells boost _imagestream_pipeconnect expects 1 additional arguement
