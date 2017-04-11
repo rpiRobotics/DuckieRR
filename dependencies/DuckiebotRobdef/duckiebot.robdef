@@ -12,6 +12,7 @@ option constant uint8 RED 2
 struct Header
     field uint32 seq
     field double time
+    field double ctime
 end struct
 
 struct Image

@@ -3,6 +3,7 @@ from duckie_utils.configurable import Configurable
 from duckie_utils.instantiate_utils import instantiate
 from duckie_utils.image import DuckieImageToBGRMat
 from duckie_utils.stats import Stats
+from duckie_utils.timekeeper import TimeKeeper
 from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
 import cv2
 import numpy as np
@@ -118,7 +119,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             self.intermittent_log(self.stats.info())
             self.stats.reset()
 
-        tk = TimeKeeper(image.header.time)
+        tk = TimeKeeper(image.header)
         self.intermittent_counter += 1
 
         # extract the image data

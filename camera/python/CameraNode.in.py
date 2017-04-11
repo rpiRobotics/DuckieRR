@@ -47,6 +47,7 @@ class CameraNode(RRNodeInterface):
         self._image.header = RRN.NewStructure("Duckiebot.Header")
         self._image.header.seq = 0
         self._image.header.time = 0.0
+        self._image.header.ctime = 0.0
 
         self._imagestream = None
         self._imagestream_endpoints = dict()
@@ -79,6 +80,7 @@ class CameraNode(RRNodeInterface):
             self._seq += 1
             self._image.header.seq = self._seq
             self._image.header.time = time.time()
+            self._image.header.ctime = time.clock()
 
             # clear stream
             self.stream.seek(0)
@@ -109,9 +111,10 @@ class CameraNode(RRNodeInterface):
                 self.camera.capture_sequence(gen, format=self._format, use_video_port=True,splitter_port=0)
             except StopIteration:
                 pass
-            self.log("Updating framerate")
-            self.camera.framerate = self._framerate
-            self.update_framerate = False
+            if self.update_framerate:
+                self.log("Updating framerate")
+                self.camera.framerate = self._framerate
+                self.update_framerate = False
         self.log("Capture Ended.")
 
     def _grabAndPublish(self,stream):
@@ -125,7 +128,8 @@ class CameraNode(RRNodeInterface):
             self._seq += 1
             self._image.header.seq = self._seq
             self._image.header.time = time.time()
-            
+            self._image.header.ctime = time.clock()
+
             # send the new frame to the broadcaster using AsyncSendPacket
             # and a blank handler. We don't really care when the send finishes
             # since we are using the "backlog" flow control in the broadcaster
@@ -168,8 +172,10 @@ class CameraNode(RRNodeInterface):
 
     def onShutdown(self):
         self.log("Closing Camera.")
-        self.camera.close()
+        self._capturing = False
         self.is_shutdown = True
+        time.sleep(1.0)
+        self.camera.close()
         self.log("Shutdown.")
 
 if __name__ == '__main__':

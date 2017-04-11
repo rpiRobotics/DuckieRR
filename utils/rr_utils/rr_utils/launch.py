@@ -72,6 +72,7 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
         defined_objects = []
         lines = service_def.splitlines()
         for line in lines:
+            line=line.strip()
             if line == '':
                 continue
             if line[0] == '#': # comment character
