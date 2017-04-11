@@ -6,9 +6,11 @@ option version 0.8
 import Duckiebot 
 
 object LineDetector
-    property Duckiebot.Segment{list} segments
-
+    # property Duckiebot.Segment{list} segments
+    # event newSegments()
+    
     # likely want some way of clients only checking when new segments found.
-    #pipe Segment{list} segmentStream
-    event newSegments(Duckiebot.Segment{list} segs)
+    # pipe Duckiebot.Segment{list} segments
+    wire Duckiebot.Segment{list} segments
+    
 end object

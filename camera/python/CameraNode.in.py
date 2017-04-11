@@ -29,6 +29,7 @@ class CameraNode(RRNodeInterface):
         self.format_options = ('jpeg', 'rgb', 'bgr')
         self._format = 'rgb'
 
+        self._seq = 0
 
         self.camera = PiCamera()
         self.camera.framerate = self._framerate
@@ -43,6 +44,9 @@ class CameraNode(RRNodeInterface):
         self._image.width = self.res_w
         self._image.height = self.res_h
         self._image.format = self._format
+        self._image.header = RRN.NewStructure("Duckiebot.Header")
+        self._image.header.seq = 0
+        self._image.header.time = 0.0
 
         self._imagestream = None
         self._imagestream_endpoints = dict()
@@ -72,6 +76,9 @@ class CameraNode(RRNodeInterface):
 
             data = self.stream.getvalue()
             self._image.data = bytearray(data) # must cast as byte array for RR
+            self._seq += 1
+            self._image.header.seq = self._seq
+            self._image.header.time = time.time()
 
             # clear stream
             self.stream.seek(0)
@@ -85,8 +92,9 @@ class CameraNode(RRNodeInterface):
             raise Exception('Already Capturing')
         self.log("Starting Capture")
         self._capturing = True
-        t = threading.Thread(target=self._capture_threadfunc)
-        t.start()
+        #t = threading.Thread(target=self._capture_threadfunc)
+        #t.start()
+        thread.start_new_thread(self._capture_threadfunc,())
 
     def stopCapturing(self):
         if (not self._capturing):
@@ -98,7 +106,7 @@ class CameraNode(RRNodeInterface):
         while self._capturing and not self.is_shutdown:
             gen = self._grabAndPublish(self.stream)
             try:
-                self.camera.capture_sequence(gen, format=self._format, use_video_port=True)
+                self.camera.capture_sequence(gen, format=self._format, use_video_port=True,splitter_port=0)
             except StopIteration:
                 pass
             self.log("Updating framerate")
@@ -110,20 +118,24 @@ class CameraNode(RRNodeInterface):
         while self._capturing and not self.update_framerate and not self.is_shutdown:
             yield stream
 
-            with self._lock:
-                stream.seek(0)
-                data = stream.getvalue()
-                self._image.data = bytearray(data)
-
+            #with self._lock:
+            stream.seek(0)
+            data = stream.getvalue()
+            self._image.data = bytearray(data)
+            self._seq += 1
+            self._image.header.seq = self._seq
+            self._image.header.time = time.time()
+            
             # send the new frame to the broadcaster using AsyncSendPacket
             # and a blank handler. We don't really care when the send finishes
             # since we are using the "backlog" flow control in the broadcaster
             self._imagestream_broadcaster.AsyncSendPacket(self._image,lambda: None)
+            
             # clear stream
             stream.seek(0)
             stream.truncate()
 
-            time.sleep(0.0001)
+            time.sleep(0.001)
 
     @property
     def ImageStream(self):
