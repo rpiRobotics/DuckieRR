@@ -121,7 +121,7 @@ class JoyMapperNode(RRNodeInterface,Configurable):
                 self.newJoyData = False
                 self.publishControl()
                 self.processButtons()
-            time.sleep(0.01)
+            time.sleep(0.001)
 
     def publishControl(self):
         v = -self.joy.axes[self._mapping['v']]*self._speed_gain #(-) so that up is +'ve
@@ -141,7 +141,7 @@ class JoyMapperNode(RRNodeInterface,Configurable):
             self.drive.toggleEStop()
         if self.joy.buttons[self._mapping['carlike']] == 1:
             self._car_like ^= 1 # (XOR)
-            self.log('car_like: %d')%self._car_like
+            self.log('car_like: %d'%(self._car_like))
 
 if __name__ == '__main__':
     # Parse command line arguments
