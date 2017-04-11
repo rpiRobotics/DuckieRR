@@ -125,7 +125,7 @@ class JoyMapperNode(RRNodeInterface,Configurable):
 
     def publishControl(self):
         v = -self.joy.axes[self._mapping['v']]*self._speed_gain #(-) so that up is +'ve
-        if self.car_like:
+        if self._car_like:
             # Implement Bicycle Kinematics - Nonholonomic Kinematics
             # see https://inst.eecs.berkeley.edu/~ee192/sp13/pdf/steer-control.pdf
             steering_angle = -self.joy.axes[self._mapping['w']]*self._steer_angle_gain
@@ -134,7 +134,8 @@ class JoyMapperNode(RRNodeInterface,Configurable):
             # Holonomic Kinematics for Normal Driving
             w = -self.joy.axes[self._mapping['w']] * self._steer_gain
             #print "(%0.3f, %0.3f)"%(v,w)
-            self.drive.carCmd(v,w)
+
+        self.drive.carCmd(v,w)
 
     def processButtons(self):
         if self.joy.buttons[self._mapping['estop']] == 1:
