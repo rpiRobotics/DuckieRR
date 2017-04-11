@@ -25,18 +25,18 @@ class CameraNode(RRNodeInterface):
         self.res_w = int(640)
         self.res_h = int(480)
         self._resolution = [self.res_w, self.res_h]
-        
+
         self.format_options = ('jpeg', 'rgb', 'bgr')
         self._format = 'rgb'
 
-        
+
         self.camera = PiCamera()
         self.camera.framerate = self._framerate
         self.camera.resolution = (self.res_w, self.res_h)
         self.stream = io.BytesIO()
 
         self.is_shutdown = False
-        
+
         self._lock = threading.RLock()
 
         self._image = RRN.NewStructure("Duckiebot.Image")
@@ -48,14 +48,14 @@ class CameraNode(RRNodeInterface):
         self._imagestream_endpoints = dict()
         self._imagestream_endpoints_lock = threading.RLock()
         self._capturing = False
-        
+
 
     def toggleFramerate(self):
         if self._framerate != self.framerate_high:
             self._framerate = self.framerate_high
         else:
             self._framerate = self.framerate_low
-        
+
         self.update_framerate = True
 
     def changeFormat(self, newformat):
@@ -69,7 +69,7 @@ class CameraNode(RRNodeInterface):
         with self._lock:
             self.camera.capture(self.stream, format=self._format, use_video_port=True)
             self.stream.seek(0)
-            
+
             data = self.stream.getvalue()
             self._image.data = bytearray(data) # must cast as byte array for RR
 
@@ -114,7 +114,7 @@ class CameraNode(RRNodeInterface):
                 stream.seek(0)
                 data = stream.getvalue()
                 self._image.data = bytearray(data)
-            
+
             # send the new frame to the broadcaster using AsyncSendPacket
             # and a blank handler. We don't really care when the send finishes
             # since we are using the "backlog" flow control in the broadcaster
@@ -126,20 +126,20 @@ class CameraNode(RRNodeInterface):
             time.sleep(0.0001)
 
     @property
-    def ImageStream(self):          
+    def ImageStream(self):
         return self._imagestream
     @ImageStream.setter
     def ImageStream(self,value):
         self._imagestream = value
         # Create a PipeBroadcaster and only allow the most recent...
         # Should this be a wire then?
-        self._imagestream_broadcaster=RR.PipeBroadcaster(value,backlog=1)
-    
+        self._imagestream_broadcaster=RR.PipeBroadcaster(value,1)
+
     @property
     def framerate(self):
         return self._framerate
 
-    @property 
+    @property
     def resolution(self):
         return self._resolution
 
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
 
     #veh = args.veh
-    
+
     launch_file="""\
 node_name: Duckiebot.Camera
 
@@ -187,7 +187,7 @@ objects:
 
 tcp_port: %d
     """%(args.port)
-    
+
     launch_config = yaml.load(launch_file)
 
     LaunchRRNode(**launch_config)
