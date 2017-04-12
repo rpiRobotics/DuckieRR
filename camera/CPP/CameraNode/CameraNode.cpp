@@ -34,10 +34,13 @@ CameraNode::CameraNode(void){
 }
 
 void CameraNode::Shutdown(void){
-	// release the camera
-	camera->release();
 	_is_shutdown = true;
 	_capturing = false;
+	boost::this_thread::sleep(boost::posix_time::seconds(1) );
+	
+	// release the camera
+	camera->release();
+	
 	cout << "[" << _nodeName << "] Shutdown."<<endl;
 
 }

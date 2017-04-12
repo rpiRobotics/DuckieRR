@@ -12,5 +12,8 @@ object LineDetector
     # likely want some way of clients only checking when new segments found.
     # pipe Duckiebot.Segment{list} segments
     wire Duckiebot.Segment{list} segments
+
+    pipe Duckiebot.Image verboseImage
+    function void toggleVerbose()
     
 end object

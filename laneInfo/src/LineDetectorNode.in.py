@@ -5,6 +5,7 @@ from duckie_utils.image import DuckieImageToBGRMat
 from duckie_utils.stats import Stats
 from duckie_utils.timekeeper import TimeKeeper
 from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
+from line_detector.line_detector_plot import *
 import cv2
 import numpy as np
 import threading
@@ -28,7 +29,15 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             ]
         Configurable.__init__(self,param_names,configuration)
 
+
         self._segments = None
+        self._verbose = False
+        self._verboseImagestream = None
+        self._verboseImage = RRN.NewStructure("Duckiebot.Image")
+        self._verboseImage.height = self.image_size[0]
+        self._verboseImage.width = self.image_size[1]
+        self._verboseImage.format = 'bgr'
+
         self.DuckieConsts = RRN.GetConstants("Duckiebot")
         
         # Thread lock
@@ -67,6 +76,18 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         try:
             self.duckie_cam.startCapturing()
         except: pass
+
+    def toggleVerbose(self):
+        self._verbose = (not self._verbose)
+
+    @property 
+    def verboseImage(self):
+        return self._verboseImage
+    
+    @verboseImage.setter
+    def verboseImage(self,value):
+        self._verboseImage = value
+        self._verboseImagestream = RR.PipeBroadcaster(self._verboseImage,1)
 
     
     @property
@@ -180,7 +201,21 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         self._segments_wire.OutValue = segmentList
         tk.completed('--pub_lines--')
 
-        # Possibly add visualization...
+        # VISUALIZATION
+        if self._verbose:
+
+            # Draw lines and normals
+            image_with_lines = np.copy(image_cv)
+            drawLines(image_with_lines, white.lines, (0,0,0))
+            drawLines(image_with_lines, yellow.lines, (255,0,0))
+            drawLines(image_with_lines, red.lines, (0,255,0))
+
+            tk.completed('drawn')
+
+            # publish the image with lines
+            self._verboseImage.data = image_with_lines.tobytes()
+            self._verboseImagestream.AsyncSendPacket(self._verboseImage, lambda:None)
+            tk.completed('pub_image')
 
         self.intermittent_log(tk.getall())
 
@@ -213,6 +248,9 @@ if __name__ == '__main__':
         description='Initialize the line detector')
     parser.add_argument('--config', type=open,
         help='A config file for the line detector (Otherwise use Default)')
+        parser.add_argument('--port',type=int,default=0,
+        help='TCP port to host service on' +\
+        '(will auto-generate if not specified)')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     args = parser.parse_args(sys.argv[1:])
@@ -233,7 +271,8 @@ objects:
       class: LineDetectorNode.LineDetectorNode
       configuration: %s 
 
-    """%(config_file)
+tcp_port: %d 
+    """%(config_file,args.port)
     
     launch_config = yaml.load(launch_file)
     LaunchRRNode(**launch_config)

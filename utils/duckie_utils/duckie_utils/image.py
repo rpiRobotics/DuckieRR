@@ -30,7 +30,7 @@ def DuckieImageToBGRMat(duckieim):
         s=np.fromstring(duckieim.data, np.uint8)
         if is_cv2():
             frame = cv2.imdecode(s,cv2.CV_LOAD_IMAGE_COLOR)
-        elif is_cv3():
+        else:
             frame = cv2.imdecode(s,cv2.IMREAD_COLOR)
 
         if frame is None:
@@ -63,7 +63,7 @@ def DuckieImageToGrayMat(duckieim):
         s=np.fromstring(duckieim.data, np.uint8)
         if is_cv2():
             frame = cv2.imdecode(s,cv2.CV_LOAD_IMAGE_COLOR)
-        elif is_cv3():
+        else:
             frame = cv2.imdecode(s,cv2.IMREAD_COLOR)
 
         if frame is None:
@@ -90,7 +90,7 @@ def DuckieImageToRGBMat(duckieim):
         s=np.fromstring(duckieim.data, np.uint8)
         if is_cv2():
             frame = cv2.imdecode(s,cv2.CV_LOAD_IMAGE_COLOR)
-        elif is_cv3():
+        else:
             frame = cv2.imdecode(s,cv2.IMREAD_COLOR)
 
         if frame is None:
