@@ -66,7 +66,7 @@ class LineDetectorHSV(Configurable, LineDetectorInterface):
             if is_cv2():
                 lines = np.array(lines[0])
             else:
-                lines = lines.squeeze()
+                lines = np.reshape(lines,(-1,4))
         else:
             lines = []
         return lines
