@@ -32,11 +32,12 @@ class LineDetectorNode(Configurable,RRNodeInterface):
 
         self._segments = None
         self._verbose = False
-        self._verboseImagestream = None
-        self._verboseImage = RRN.NewStructure("Duckiebot.Image")
-        self._verboseImage.height = self.image_size[0]
-        self._verboseImage.width = self.image_size[1]
-        self._verboseImage.format = 'bgr'
+        self._verboseImage = None
+
+        self._pub_im = RRN.NewStructure("Duckiebot.Image")
+        self._pub_im.height = self.img_size[0] - self.top_cutoff
+        self._pub_im.width = self.img_size[1]
+        self._pub_im.format = 'bgr'
 
         self.DuckieConsts = RRN.GetConstants("Duckiebot")
         
@@ -213,8 +214,9 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             tk.completed('drawn')
 
             # publish the image with lines
-            self._verboseImage.data = image_with_lines.tobytes()
-            self._verboseImagestream.AsyncSendPacket(self._verboseImage, lambda:None)
+            self._pub_im.data = np.reshape(image_with_lines,
+                                                 image_with_lines.size)
+            self._verboseImagestream.AsyncSendPacket(self._pub_im, lambda:None)
             tk.completed('pub_image')
 
         self.intermittent_log(tk.getall())
@@ -248,7 +250,7 @@ if __name__ == '__main__':
         description='Initialize the line detector')
     parser.add_argument('--config', type=open,
         help='A config file for the line detector (Otherwise use Default)')
-        parser.add_argument('--port',type=int,default=0,
+    parser.add_argument('--port',type=int,default=0,
         help='TCP port to host service on' +\
         '(will auto-generate if not specified)')
     parser.add_argument('args', nargs=argparse.REMAINDER)
