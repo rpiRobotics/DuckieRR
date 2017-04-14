@@ -38,7 +38,7 @@ def DuckieImageToBGRMat(duckieim):
             msg += 'This is usual a sign of data corruption.'
             raise ValueError(msg)
     elif (fmt == 'gray'):
-        frame=duckieim.data.reshape([duckieim.height, duckieim.width, 2], order='C')
+        frame=duckieim.data.reshape([duckieim.height, duckieim.width], order='C')
         frame=cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
     else:
         msg = "Unsupported format type '%s'. Try changing the camera format."%(fmt)
@@ -62,9 +62,9 @@ def DuckieImageToGrayMat(duckieim):
     elif (fmt == 'jpeg'):
         s=np.fromstring(duckieim.data, np.uint8)
         if is_cv2():
-            frame = cv2.imdecode(s,cv2.CV_LOAD_IMAGE_COLOR)
+            frame = cv2.imdecode(s,cv2.CV_LOAD_IMAGE_GRAYSCALE)
         else:
-            frame = cv2.imdecode(s,cv2.IMREAD_COLOR)
+            frame = cv2.imdecode(s,cv2.IMREAD_GRAYSCALE)
 
         if frame is None:
             msg = 'Could not decode image (cv2.imdecode returned None). '
@@ -90,6 +90,7 @@ def DuckieImageToRGBMat(duckieim):
         s=np.fromstring(duckieim.data, np.uint8)
         if is_cv2():
             frame = cv2.imdecode(s,cv2.CV_LOAD_IMAGE_COLOR)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         else:
             frame = cv2.imdecode(s,cv2.IMREAD_COLOR)
 
@@ -99,11 +100,8 @@ def DuckieImageToRGBMat(duckieim):
             raise ValueError(msg)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     elif (fmt == 'gray'):
-        frame=duckieim.data.reshape([duckieim.height, duckieim.width, 2], order='C')
+        frame=duckieim.data.reshape([duckieim.height, duckieim.width], order='C')
         frame=cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB);
-        msg = "Can not convert image type 'gray' to 'rgb'. Try changing the camera format."
-        raise ValueError(msg)
-        # Actually we probably can... but need to check the size of an image captured as gray
     else:
         msg = "Unsupported format type '%s'. Try changing the camera format."%(fmt)
         raise ValueError(msg)

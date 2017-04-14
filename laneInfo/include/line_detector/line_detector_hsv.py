@@ -2,6 +2,7 @@ from line_detector.line_detector_interface import (Detections, LineDetectorInter
 import cv2
 import numpy as np
 from duckie_utils.configurable import Configurable
+from duckie_utils.image import is_cv2
 
 class LineDetectorHSV(Configurable, LineDetectorInterface):
     """LineDetector using Hue, Saturation, Value (HSV) color thresholding"""
@@ -56,9 +57,16 @@ class LineDetectorHSV(Configurable, LineDetectorInterface):
         return edges
 
     def _HoughLine(self, edge):
-        lines = cv2.HoughLinesP(edge, 1, np.pi/180, self.hough_threshold, np.empty(1), self.hough_min_line_length, self.hough_max_line_gap)
+        if is_cv2():
+            lines = cv2.HoughLinesP(edge, 1, np.pi/180, self.hough_threshold, np.empty(1), self.hough_min_line_length, self.hough_max_line_gap)
+        else:
+            lines = cv2.HoughLinesP(edge, 1, np.pi/180, self.hough_threshold, minLineLength=self.hough_min_line_length, maxLineGap=self.hough_max_line_gap)
+        
         if lines is not None:
-            lines = np.array(lines[0])
+            if is_cv2():
+                lines = np.array(lines[0])
+            else:
+                lines = lines.squeeze()
         else:
             lines = []
         return lines
@@ -113,4 +121,87 @@ class LineDetectorHSV(Configurable, LineDetectorInterface):
     def getImage(self):
         return self.bgr
 
-
+# def _main():
+#     import yaml,sys
+#     from line_detector.line_detector_plot import (drawLines, drawNormals)
+#
+#     with open('/home/greg/duckiebot_ws/DuckieRR/laneInfo/config/default_LD.yaml','r') as f:
+#         params = yaml.load(f.read())
+#    
+#     config = params['detector'][1]['configuration']
+#     detector = LineDetectorHSV(config)
+#     # read image from file or camera
+#     if len(sys.argv)==2:
+#         bgr = cv2.imread(sys.argv[1])
+#
+#         # crop and resize frame
+#         bgr = cv2.resize(bgr, (200, 150))
+#         bgr = bgr[bgr.shape[0]/2:, :, :]
+#
+#         # set the image to be detected
+#         detector.setImage(bgr)
+#
+#         # detect lines and normals
+#         lines_white, normals_white, area_white = detector.detectLines('white')
+#         lines_yellow, normals_yellow, area_yellow = detector.detectLines('yellow')
+#         lines_red, normals_red, area_red = detector.detectLines('red')
+#
+#         # draw lines
+#         drawLines(detector.bgr,lines_white, (0,0,0))
+#         drawLines(detector.bgr,lines_yellow, (255,0,0))
+#         drawLines(detector.bgr,lines_red, (0,255,0))
+#
+#         # draw normals
+#         drawNormals(detector.bgr,lines_yellow, normals_yellow)
+#         drawNormals(detector.bgr,lines_white, normals_white)
+#         drawNormals(detector.bgr,lines_red, normals_red)
+#
+#         cv2.imwrite('lines_with_normal.png', detector.bgr)
+#         cv2.imshow('frame', detector.bgr)
+#         cv2.imshow('edge', detector.edges)
+#         cv2.waitKey(0)
+#
+#     elif len(sys.argv)==1:
+#         cap = cv2.VideoCapture(0)
+#         if not cap.isOpened():
+#             print 'Error opening camera...'
+#             return -1
+#
+#         while True:
+#             ret, bgr = cap.read()
+#             if not ret:
+#                 print 'No frames grabbed...'
+#                 break
+#
+#             # crop and resize frame
+#             bgr = cv2.resize(bgr, (200, 150))
+#
+#             # set the image to be detected
+#             detector.setImage(bgr)
+#
+#             # detect lines and normals
+#             lines_white, normals_white, centers_white, area_white = detector.detectLines('white')
+#             lines_yellow, normals_yellow, centers_yellow, area_yellow = detector.detectLines('yellow')
+#             lines_red, normals_red, centers_red, area_red = detector.detectLines('red')
+#
+#             print "# white: %d; # yellow: %d; # red: %d"%(len(lines_white),len(lines_yellow),len(lines_red))
+#           
+#             # draw lines
+#             drawLines(detector.bgr,lines_white, (0,0,0))
+#             drawLines(detector.bgr,lines_yellow, (255,0,0))
+#             drawLines(detector.bgr,lines_red, (0,255,0))
+#
+#             # draw normals
+#             drawNormals(detector.bgr,lines_yellow, normals_yellow)
+#             drawNormals(detector.bgr,lines_white, normals_white)
+#             drawNormals(detector.bgr,lines_red, normals_red)
+#
+#             # show frame
+#             cv2.imshow('Line Detector', detector.bgr)
+#             cv2.imshow('Edge', detector.edges)
+#             cv2.waitKey(30)
+#
+#     else:
+#         return -1
+# if __name__ == '__main__':
+#     _main()
