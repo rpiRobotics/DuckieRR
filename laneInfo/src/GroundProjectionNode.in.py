@@ -46,9 +46,12 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         # Find the line detector service
         self.ld = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
         
-        # and connect to the new segments event
-        self.ld.newSegments += self._cbLineSeg
-        self.newSegments = RR.EventHook()
+        # and connect to the segments wire
+        ld_segments = self.ld.segments.Connect()
+        ld_segments.WireValueChanged += self._cbLineSeg
+        
+        # create our own segments wire
+        self._segments = None
 
         # read the homography matrix from file
         h_file = "${DEFAULT_CAMEXT}"
@@ -93,6 +96,10 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
     @property
     def segments(self):
         return self._segments
+    @segments.setter
+    def segments(self, value):
+        self._segmets = value
+        self._segments_wire = RR.WireBroadcaster(self._segments)
 
 
     def estimate_homography(self, image):
@@ -129,13 +136,14 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         msg = "%3d:%s"%(self.intermittent_counter, s)
         self.log(msg)
 
-    def _cbLineSeg(self, linesegs):
+    def _cbLineSeg(self, wire, value, timestamp):
         self.stats.received()
 
         if not self.active:
             return
 
-        #start a daemon thread to process the image
+        linesegs = wire.InValue
+        #start a daemon thread to process the segments
         thread = threading.Thread(target=self._processSegments, args=(linesegs,))
         thread.setDaemon(True)
         thread.start()

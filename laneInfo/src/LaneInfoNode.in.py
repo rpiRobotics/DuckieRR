@@ -58,10 +58,11 @@ class LaneInfoNode(Configurable,RRNodeInterface):
             self.drive = self.FindAndConnect("Duckiebot.Drive.Drive")
 
         # Find the ground projection service and add a callback for new segments
-        self.lineDetector = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
+        self.gp = self.FindAndConnect("Duckiebot.GroundProjection.GroundProjection")
 
         # Add the callback to process new segments
-        self.lineDetector.newSegments += self.processSegments
+        gp_segments = self.gp.segments.Connect()
+        gp_segments.WireValueChanged += self._cbSegments
         
     
     def initializeParams(self,configuration):
@@ -120,6 +121,10 @@ class LaneInfoNode(Configurable,RRNodeInterface):
             return
         msg = "%3d:%s"%(self.intermittent_counter, s)
         self.log(msg)
+
+    def _cbSegments(self, wire, value, timestamp):
+        segment_list = wire.InValue
+        self.processSegments(segment_list)
 
     def processSegments(self,segment_list):
         """
