@@ -20,10 +20,16 @@ CameraNode::CameraNode(void){
 
     _is_shutdown = false;
 
+    _seq = 0;
+
     _image = boost::make_shared<Image>();
     _image->format = _format;
     _image->width = _res_w;
     _image->height = _res_h;
+    _image->header = boost::make_shared<Header>();
+    _image->header->seq = _seq;
+    _image->header->time =0.0;
+    _image->header->ctime = 0.0;
 
     if ( !camera->open()) throw std::runtime_error("Error opening the camera");
     _capturing = false;
@@ -91,6 +97,16 @@ RR_SHARED_PTR<Image > CameraNode::captureImage(){
 	// capture a frame
 	camera->grab();
 
+	// increment seq
+	_seq++;
+
+	//get time info
+	double time = boost::chrono::duration<double>(boost::chrono::system_clock::now().time_since_epoch()).count();
+
+	// Fill out the header info
+	_image->header->seq = _seq;
+	_image->header->time = time; 
+	//_image->header->ctime = 0.0; // We just won't use ctime...
 	// Extract and copy over the data
 	_image->data = AttachRRArrayCopy((uint8_t*)camera->getImageBufferData(), camera->getImageBufferSize());
 

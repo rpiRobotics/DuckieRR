@@ -70,6 +70,7 @@ class CameraNode : public Camera::Camera, public boost::enable_shared_from_this<
 		bool _is_shutdown;
 
 		RR_SHARED_PTR<Image > _image;
+		uint _seq;
 
 		RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > _imagestream;
 		RR_SHARED_PTR<RobotRaconteur::PipeBroadcaster<RR_SHARED_PTR<Image> > > _imagestream_broadcaster;
