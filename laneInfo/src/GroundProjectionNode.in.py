@@ -29,9 +29,8 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             ]
         Configurable.__init__(self,param_names,configuration)
 
-        self._segments = []
         self.Consts = RRN.GetConstants("Duckiebot")
-        
+
         # Thread lock
         self.thread_lock = threading.Lock()
 
@@ -42,14 +41,8 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         # only print every 10 cycles
         self.intermittent_interval = 100
         self.intermittent_counter = 0
-        
-        # Find the line detector service
-        self.ld = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
-        
-        # and connect to the segments wire
-        ld_segments = self.ld.segments.Connect()
-        ld_segments.WireValueChanged += self._cbLineSeg
-        
+
+
         # create our own segments wire
         self._segments = None
 
@@ -78,6 +71,13 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             self.cam_info.P =np.array( p['data'], dtype=np.float64 ).reshape((p['rows'],p['cols']))
 
 
+        # Find the line detector service
+        self.ld = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
+
+        # and connect to the segments wire
+        ld_segments = self.ld.segments.Connect()
+        ld_segments.WireValueChanged += self._cbLineSeg
+
         '''
         # CAMERA CURRENTLY NOT NEEDED
         # Find the image service and connect to the pipe
@@ -98,7 +98,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         return self._segments
     @segments.setter
     def segments(self, value):
-        self._segmets = value
+        self._segments = value
         self._segments_wire = RR.WireBroadcaster(self._segments)
 
 
@@ -170,8 +170,8 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
 
         self.intermittent_counter += 1
 
-        self._segments = linesegs
-        for seg in self._segments:
+        segmentList = linesegs
+        for seg in segmentList:
             seg.points = []
 
             assert(len(seg.pixels_normalized) == 2)
@@ -180,7 +180,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             point2 = self.image2ground(seg.pixels_normalized[1])
             seg.points.extend([point1, point2])
 
-        self.newSegments.fire(self._segments)
+        self._segments_wire.OutValue = segmentList
 
     def image2ground(self, pix):
         try: 
@@ -312,17 +312,17 @@ if __name__ == '__main__':
         config_file = '${DEFAULT_GP_PARAMS}'
 
     launch_file = """\
-node_name: Duckiebot.LineDetector
+node_name: Duckiebot.GroundProjection
 
 objects:
     - name: Duckiebot
       robdef: ${DUCKIEBOT_ROBDEF}
-    - name: LineDetector
+    - name: GroundProjection
       robdef: ${GROUNDPROJECTION_ROBDEF}
-      class: LineDetectorNode.LineDetectorNode
+      class: GroundProjectionNode.GroundProjectionNode
       configuration: %s 
 
     """%(config_file)
-    
+   
     launch_config = yaml.load(launch_file)
     LaunchRRNode(**launch_config)
