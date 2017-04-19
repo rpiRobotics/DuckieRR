@@ -3,6 +3,8 @@ service Duckiebot.LaneInfo
 
 option version 0.8
 
+import Duckiebot
+
 struct LanePose
     # d - lateral offset from center
     # phi - heading error
@@ -15,4 +17,7 @@ end struct
 
 object LaneInfo
     property LanePose lanePose
+
+    function toggleVerbose
+    pipe Duckiebot.Image verboseImage
 end object

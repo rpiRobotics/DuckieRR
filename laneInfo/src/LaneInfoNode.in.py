@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from duckie_utils.configurable import Configurable
-from duckie_utils.stats import Stats
 import numpy as np
 import time
 import yaml
@@ -9,7 +7,15 @@ from math import floor, atan2, pi, cos, sin, sqrt
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import multivariate_normal, entropy
 
+from duckie_utils.configurable import Configurable
+from duckie_utils.stats import Stats
+from duckie_utils.timekeeper import TimeKeeper
+from duckie_utils.instantiate_utils import instantiate
+from duckie_utils.image import DuckieImageToBGRMat
+
 from rr_utils import (RRNodeInterface, LaunchRRNode)
+from line_detector.line_detector_plot import *
+
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
 
@@ -25,6 +31,7 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         # This may need to change...
         self.RRConsts = RRN.GetConstants("Duckiebot")
         
+        # LANE INFO SETUP
         self.d,self.phi = np.mgrid[self.d_min:self.d_max:self.delta_d,self.phi_min:self.phi_max:self.delta_phi]
         self.beliefRV=np.empty(self.d.shape)
         self.initializeBelief()
@@ -43,11 +50,53 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         self.v_avg = 0
         self.w_avg = 0
         
-        
+        # LINE DETECTION SETUP
+        self._verbose = False
+        self._verboseImage = None
+        self._pub_im = RRN.NewStructure("Duckiebot.Image")
+        self._pub_im.height = self.img_size[0] - self.top_cutoff
+        self._pub_im.width = self.img_size[1]
+        self._pub_im.format = 'bgr'
+
+        self.segment = RRN.NewStructure("Duckiebot.Segment")
+        self.segment.pixels_normalized = [RRN.NewStructure("Duckiebot.Vector2D"),
+            RRN.NewStructure("Duckiebot.Vector2D")]
+        self.segment.normal = RRN.NewStructure("Duckiebot.Vector2D")
+        self.segment.points = [RRN.NewStructure("Duckiebot.Point"), 
+            RRN.NewStructure("Duckiebot.Point")]
+
+        # read the homography matrix from file
+        h_file = "${DEFAULT_CAMEXT}"
+        with open(h_file,'r') as f:
+            h_data = yaml.load(f.read());
+            self.H = np.array( h_data['homography'] ).reshape((3,3))
+            self.Hinv = np.linalg.inv(self.H)
+
+        self.rectified_input = False
+
+        cam_file = "${DEFAULT_CAMINT}"
+        with open(cam_file, 'r') as f:
+            cam_data = yaml.load(f.read());
+            self.cam_info = RRN.NewStructure("Duckiebot.CameraInfo")
+            self.cam_info.width = cam_data['image_width']
+            self.cam_info.height = cam_data['image_height']
+            d = cam_data['distortion_coefficients']
+            self.cam_info.D =np.array( d['data'], dtype=np.float64 ).reshape((d['rows'],d['cols']))
+            k = cam_data['camera_matrix']
+            self.cam_info.K =np.array( k['data'], dtype=np.float64 ).reshape((k['rows'],k['cols']))
+            r = cam_data['rectification_matrix']
+            self.cam_info.R =np.array( r['data'], dtype=np.float64 ).reshape((r['rows'],r['cols']))
+            p = cam_data['projection_matrix']
+            self.cam_info.P =np.array( p['data'], dtype=np.float64 ).reshape((p['rows'],p['cols']))
+
         self.stats = Stats()
+        self.tk = None # need to remember to set this when we want to start timing
         # only print every 100 cycles
         self.intermittent_interval = 100
         self.intermittent_counter = 0
+        c = self.detector
+        assert isinstance(c,list) and len(c) == 2, c
+        self.log("new detector config: %s"%(str(c)) )
 
         if self.use_propagation:
             # currently velocity not returned by drive service...
@@ -57,12 +106,21 @@ class LaneInfoNode(Configurable,RRNodeInterface):
             # try connecting to the drive service so we can determine the current velocity
             self.drive = self.FindAndConnect("Duckiebot.Drive.Drive")
 
-        # Find the ground projection service and add a callback for new segments
-        self.gp = self.FindAndConnect("Duckiebot.GroundProjection.GroundProjection")
+        # Find and connect to the image service
+        self.cam = self.FindAndConnect("Duckiebot.Camera.Camera")
+        
+        try:
+            self.cam.changeFormat('jpeg')
+        except: 
+            self.cam.changeFormat('bgr')
 
-        # Add the callback to process new segments
-        gp_segments = self.gp.segments.Connect()
-        gp_segments.WireValueChanged += self._cbSegments
+        # connect to the pipe
+        self.imstream = self.cam.ImageStream.Connect(-1) # connect to the pipe
+        self.imstream.PacketReceivedEvent+=self._cbImage
+
+        try:
+            self.cam.startCapturing()
+        except: pass
         
     
     def initializeParams(self,configuration):
@@ -95,7 +153,11 @@ class LaneInfoNode(Configurable,RRNodeInterface):
             'l_max',
             'use_propagation',
             'sigma_d_mask',
-            'sigma_phi_mask'
+            'sigma_phi_mask',
+
+            'img_size',
+            'top_cutoff',
+            'detector'
             ]
 
         Configurable.__init__(self,param_names,configuration)
@@ -109,10 +171,29 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         self.dwb = (2*self.zero_val*self.l_peak**3 + self.zero_val*self.l_max**3 - self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak**2*self.l_max + 3*self.l_peak**2*self.l_max*self.peak_val)/(self.l_peak**2*self.l_max*(self.l_peak - self.l_max)**2)
         self.dwc = -(self.zero_val*self.l_peak**3 + 2*self.zero_val*self.l_max**3 - 2*self.l_max**3*self.peak_val - 3*self.zero_val*self.l_peak*self.l_max**2 + 3*self.l_peak*self.l_max**2*self.peak_val)/(self.l_peak*self.l_max*(self.l_peak - self.l_max)**2)
 
+#####################################
+# RR SERVICE FUNCTIONS / PROPERTIES #
+#####################################
+    def toggleVerbose(self):
+        self._verbose = (not self._verbose)
+
+    @property 
+    def verboseImage(self):
+        return self._verboseImage
+    
+    @verboseImage.setter
+    def verboseImage(self,value):
+        self._verboseImage = value
+        self._verboseImagestream = RR.PipeBroadcaster(self._verboseImage,1)
+
     @property
     def lanePose(self):
         return self._lanePose
 
+
+#####################
+# PRIVATE FUNCTIONS #
+#####################
     def intermittent_log_now(self):
         return self.intermittent_counter % self.intermittent_interval == 1
 
@@ -122,9 +203,175 @@ class LaneInfoNode(Configurable,RRNodeInterface):
         msg = "%3d:%s"%(self.intermittent_counter, s)
         self.log(msg)
 
-    def _cbSegments(self, wire, value, timestamp):
-        segment_list = wire.InValue
-        self.processSegments(segment_list)
+    def _cbImage(self, pipe_ep):
+        self.stats.received()
+        image=pipe_ep.ReceivePacket()
+
+        if not self.active:
+            return
+
+        #start a daemon thread to process the image
+        thread = threading.Thread(target=self._processImage, args=(image,))
+        thread.setDaemon(True)
+        thread.start()
+        # this returns right away...
+
+    def _processImage(self,image):
+        if not self.thread_lock.acquire(False): # False indicates non-blocking
+            self.stats.skipped()
+            # return immediately if the thread is locked
+            return
+
+        try:
+            self.__processImage(image)
+        finally:
+            # release the thread lock
+            self.thread_lock.release()
+
+    def __processImage(self,image):
+        self.stats.processed()
+
+        if self.intermittent_log_now():
+            self.intermittent_log(self.stats.info())
+            self.stats.reset()
+
+        self.tk = TimeKeeper(image.header)
+        self.intermittent_counter += 1
+
+        # extract the image data
+        try:
+            image_cv = DuckieImageToBGRMat(image)
+        except ValueError as e:
+            self.log("Could not decode image: %s"%(e))
+            return
+
+        self.tk.completed('decode')
+
+        # resize and crop image
+        h_original, w_original = image_cv.shape[0:2]
+
+        if self.img_size[0] != h_original or self.img_size[1] != w_original:
+            image_cv = cv2.resize(image_cv, (self.img_size[1], self.img_size[0]),
+                interpolation=cv2.INTER_NEAREST)
+            image_cv = image_cv[self.top_cutoff:,:,:]
+
+        self.tk.completed('resized')
+        # apply color correction ... 
+        # ADD IN LATER IF NEEDED
+
+        # set the image to be detected
+        self.detector.setImage(image_cv)
+
+        # Detect lines and normals
+        white = self.detector.detectLines('white')
+        yellow = self.detector.detectLines('yellow')
+        red = self.detector.detectLines('red')
+
+        self.tk.completed('detected')
+
+        # Reset the segments list
+        segmentList = []
+        # convert to normalized pixel coordinates, and add segments to segment list
+        arr_cutoff = np.array((0, self.top_cutoff, 0, self.top_cutoff))
+        arr_ratio = np.array((1./self.img_size[1], 1./self.img_size[0], 1./self.img_size[1], 1./self.img_size[0] ))
+        
+        if len(white.lines) > 0:
+            lines_normalized_white = ((white.lines + arr_cutoff) * arr_ratio)
+            segmentList.extend(self.toSegment(lines_normalized_white, white.normals, self.DuckieConsts.WHITE))
+        
+        if len(yellow.lines) > 0:
+            lines_normalized_yellow = ((yellow.lines + arr_cutoff) * arr_ratio)
+            segmentList.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.DuckieConsts.YELLOW))
+        
+        if len(red.lines) > 0:
+            lines_normalized_red = ((red.lines + arr_cutoff) * arr_ratio)
+            segmentList.extend(self.toSegment(lines_normalized_red, red.normals, self.DuckieConsts.RED))
+
+        self.intermittent_log('# segments: white %3d yellow %3d red %3d' % (len(white.lines),
+                len(yellow.lines), len(red.lines)))
+
+        self.tk.completed('prepared')
+
+        #Publish
+        self.processSegments(segmentList)
+        self.tk.completed('--processed--')
+
+        # VISUALIZATION
+        if self._verbose:
+
+            # Draw lines and normals
+            image_with_lines = np.copy(image_cv)
+            drawLines(image_with_lines, white.lines, (0,0,0))
+            drawLines(image_with_lines, yellow.lines, (255,0,0))
+            drawLines(image_with_lines, red.lines, (0,255,0))
+
+            self.tk.completed('drawn')
+
+            # publish the image with lines
+            self._pub_im.data = np.reshape(image_with_lines,
+                                                 image_with_lines.size)
+            self._verboseImagestream.AsyncSendPacket(self._pub_im, lambda:None)
+            self.tk.completed('pub_image')
+
+        self.intermittent_log(tk.getall())
+
+    def toSegment(self, lines, normals, color):
+        segmentList = []
+        for x1,y1,x2,y2,norm_x,norm_y in np.hstack((lines,normals)):
+            self.segment.color = color
+            self.segment.pixels_normalized[0].x = x1
+            self.segment.pixels_normalized[0].y = y1
+            self.segment.pixels_normalized[1].x = x2
+            self.segment.pixels_normalized[1].y = y2
+            self.segment.normal.x = norm_x
+            self.segment.normal.y = norm_y
+            self.segment.points[0] = self.image2ground(self.pixels_normalized[0])
+            self.segment.points[1] = self.image2ground(self.pixels_normalized[1])
+            segmentList.append(segment)
+        return segmentList
+    
+    def image2ground(self, pix):
+        try: 
+            u = pix.u
+            v = pix.v
+        except AttributeError:
+            # we must have been passed a vector
+            pix = self.vector2pixel(pix)
+            u = pix.u
+            v = pix.v
+
+        pt_img = np.array([u,v,1.0])
+
+        if not self.rectified_input:
+            pt_undistorted = self.rectifyCVPoint(pt_img[0:2])
+            pt_img[0:2] = pt_undistorted[0:2]
+
+        pt_gnd = np.dot(self.H,pt_img);
+        
+        point = RRN.NewStructure("Duckiebot.Point")
+        point.x = pt_gnd[0]/pt_gnd[2]
+        point.y = pt_gnd[1]/pt_gnd[2]
+        point.z = 0.0
+
+        return point
+
+    def vector2pixel(self, vec2d):
+        w = float(self.cam_info.width)
+        h = float(self.cam_info.height)
+        pixel = RRN.NewStructure("Duckiebot.Pixel")
+        pixel.u = int(w*vec2d.x)
+        pixel.v = int(h*vec2d.y)
+
+        # boundary check
+        pixel.u = np.clip(pixel.u, 0, w-1)
+        pixel.v = np.clip(pixel.v, 0, h-1)
+
+        return pixel
+
+    def rectifyCVPoint(self,raw2d):
+        src_pt = raw2d.reshape((1,1,2)).astype(np.float64)
+        rectified = cv2.undistortPoints(src_pt, self.cam_info.K, self.cam_info.D,R=self.cam_info.R, P=self.cam_info.P)
+        return rectified
 
     def processSegments(self,segment_list):
         """
