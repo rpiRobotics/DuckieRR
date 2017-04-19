@@ -3,6 +3,7 @@ from duckie_utils.configurable import Configurable
 from duckie_utils.instantiate_utils import instantiate
 from duckie_utils.image import DuckieImageToBGRMat
 from duckie_utils.stats import Stats
+from duckie_utils.timekeeper import TimeKeeper
 from rr_utils import *
 import cv2
 import numpy as np
@@ -39,7 +40,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         self.stats = Stats()
 
         # only print every 10 cycles
-        self.intermittent_interval = 100
+        self.intermittent_interval = 10
         self.intermittent_counter = 0
 
 
@@ -143,25 +144,26 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             return
 
         linesegs = wire.InValue
+        
         #start a daemon thread to process the segments
         thread = threading.Thread(target=self._processSegments, args=(linesegs,))
         thread.setDaemon(True)
         thread.start()
         # this returns right away...
 
+#    def _processSegments(self,linesegs):
+#        if not self.thread_lock.acquire(False): # False indicates non-blocking
+#            self.stats.skipped()
+#            # return immediately if the thread is locked
+#            return
+#
+#        try:
+#            self.__processSegments(linesegs)
+#        finally:
+#            # release the thread lock
+#            self.thread_lock.release()
+
     def _processSegments(self,linesegs):
-        if not self.thread_lock.acquire(False): # False indicates non-blocking
-            self.stats.skipped()
-            # return immediately if the thread is locked
-            return
-
-        try:
-            self.__processSegments(linesegs)
-        finally:
-            # release the thread lock
-            self.thread_lock.release()
-
-    def __processSegments(self,linesegs):
         self.stats.processed()
 
         if self.intermittent_log_now():
@@ -169,18 +171,20 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             self.stats.reset()
 
         self.intermittent_counter += 1
-
-        segmentList = linesegs
-        for seg in segmentList:
+        
+        #import pdb; pdb.set_trace()
+        for idx,seg in enumerate(linesegs):
             seg.points = []
 
             assert(len(seg.pixels_normalized) == 2)
-            
+
             point1 = self.image2ground(seg.pixels_normalized[0])
             point2 = self.image2ground(seg.pixels_normalized[1])
             seg.points.extend([point1, point2])
 
-        self._segments_wire.OutValue = segmentList
+            linesegs[idx] = seg
+
+        self._segments_wire.OutValue = linesegs
 
     def image2ground(self, pix):
         try: 

@@ -7,15 +7,19 @@ def asms(s):
         
 
 class TimeKeeper():
-    def __init__(self, header):
-        self.t_acquisition = header.time
-        self.c_acquisition = header.ctime
-
+    def __init__(self, header=None):
         self.latencies = []
-        self.latencies.append(('captured',
-            dict(t=self.t_acquisition, c=self.c_acquisition,
-                 delta_wall_ms=None, delta_clock_ms=None, 
-                 latency_ms=asms(0))))
+        if header != None:
+            self.t_acquisition = header.time
+            self.c_acquisition = header.ctime
+            self.latencies.append(('captured',
+                dict(t=self.t_acquisition, c=self.c_acquisition,
+                    delta_wall_ms=None, delta_clock_ms=None, 
+                    latency_ms=asms(0))))
+        else:
+            self.t_acquisition = time.time()
+            self.c_acquisition = time.clock()
+        
 
         self.completed('acquired')
 
