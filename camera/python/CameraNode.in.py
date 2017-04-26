@@ -3,56 +3,56 @@ import sys
 import argparse
 import io
 import numpy as np
-from picamera import PiCamera
-import threading, thread
-import traceback
+import picamera
+import picamera.array
+import thread
 import time
-import struct
 import yaml
-from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
+from rr_utils import (RRNodeInterface, LaunchRRNode)
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
+RRN.UseNumPy = True
 
 class CameraNode(RRNodeInterface):
     def __init__(self):
         self.node_name = "camera"
 
+        self._capturing = False
+        self.update_framerate = False
+        self.update_format = False
+
         self.framerate_high = 30.0
         self.framerate_low = 15.0
         self._framerate = self.framerate_high
-        self.update_framerate = False
 
         self.res_w = int(640)
         self.res_h = int(480)
         self._resolution = [self.res_w, self.res_h]
 
-        self.format_options = ('jpeg', 'rgb', 'bgr')
-        self._format = 'rgb'
+        self.format_options = ['jpeg','rgb','bgr']
+        self._format = 'jpeg'
+        self.newformat = None
 
-        self._seq = 0
-
-        self.camera = PiCamera()
-        self.camera.framerate = self._framerate
+        self.camera = picamera.PiCamera()
         self.camera.resolution = (self.res_w, self.res_h)
+        self.camera.framerate = self._framerate
+        time.sleep(2)
+
         self.stream = io.BytesIO()
+        self.frame = 0
 
-        self.is_shutdown = False
-
-        self._lock = threading.RLock()
-
-        self._image = RRN.NewStructure("Duckiebot.Image")
-        self._image.width = self.res_w
-        self._image.height = self.res_h
-        self._image.format = self._format
-        self._image.header = RRN.NewStructure("Duckiebot.Header")
-        self._image.header.seq = 0
-        self._image.header.time = 0.0
-        self._image.header.ctime = 0.0
+        self.image = RRN.NewStructure("Duckiebot.Image")
+        self.image.width = self.res_w
+        self.image.height = self.res_h
+        self.image.format = self._format
+        self.image.header = RRN.NewStructure("Duckiebot.Header")
+        self.image.header.seq = 0
+        self.image.header.time = 0.0
+        self.image.header.ctime = 0.0
 
         self._imagestream = None
-        self._imagestream_endpoints = dict()
-        self._imagestream_endpoints_lock = threading.RLock()
-        self._capturing = False
+
+        self.log("Initialized.")
 
 
     def toggleFramerate(self):
@@ -65,80 +65,94 @@ class CameraNode(RRNodeInterface):
 
     def changeFormat(self, newformat):
         if newformat not in self.format_options:
-            raise ValueError("Error: Valid formats are 'jpeg', 'rgb', 'bgr'")
+            raise ValueError("Error: Valid formats are %r"%self.format_options)
         else:
-            self._format = newformat
-            self._image.format = newformat
+            if self._capturing:
+                self.newformat = newformat
+                self.update_format = True
+            else:
+                self._format = newformat
+                self.image.format = self._format
+
 
     def captureImage(self):
-        with self._lock:
-            self.camera.capture(self.stream, format=self._format, use_video_port=True)
-            self.stream.seek(0)
+        if self._capturing:
+            raise RuntimeError('Can not capture image while streaming')
 
-            data = self.stream.getvalue()
-            self._image.data = bytearray(data) # must cast as byte array for RR
-            self._seq += 1
-            self._image.header.seq = self._seq
-            self._image.header.time = time.time()
-            self._image.header.ctime = time.clock()
+        self.camera.capture(self.stream, format=self._format, use_video_port=True)
+        self.stream.seek(0)
 
-            # clear stream
-            self.stream.seek(0)
-            self.stream.truncate()
+        data = self.stream.getvalue()
+        self.image.data = bytearray(data)
+        self.image.header.seq = 0
+        self.image.header.time = time.time()
+        self.image.header.ctime = time.clock()
 
-            return self._image
+        # clear the stream
+        self.stream.seek(0)
+        self.stream.truncate()
 
+        return self.image
 
     def startCapturing(self):
-        if (self._capturing):
-            raise Exception('Already Capturing')
-        self.log("Starting Capture")
-        self._capturing = True
-        #t = threading.Thread(target=self._capture_threadfunc)
-        #t.start()
-        thread.start_new_thread(self._capture_threadfunc,())
+        if not self._capturing:
+            self.log('Starting Capture')
+            self._capturing = True
+            thread.start_new_thread(self._capture_threadfunc,())
 
     def stopCapturing(self):
-        if (not self._capturing):
-            raise Exception('Not Capturing')
-        self.log("Stopping Capture")
-        self._capturing = False
+        if self._capturing:
+            self.log('Stopping Capture')
+            self._capturing = False
 
     def _capture_threadfunc(self):
-        while self._capturing and not self.is_shutdown:
+        while self._capturing:
             gen = self._grabAndPublish(self.stream)
             try:
-                self.camera.capture_sequence(gen, format=self._format, use_video_port=True,splitter_port=0)
+                start = time.time()
+                self.camera.capture_sequence(gen,format=self._format, use_video_port=True)
             except StopIteration:
                 pass
+
+            finish = time.time()
+            self.log('Captured %d %s frames at %0.2ffps'%(
+                self.frame, self._format, self.frame/(finish-start)))
+            self.frame = 0
             if self.update_framerate:
-                self.log("Updating framerate")
+                self.log("Updating stream framerate...")
                 self.camera.framerate = self._framerate
                 self.update_framerate = False
-        self.log("Capture Ended.")
+                time.sleep(2)
+                self.log("Stream framerate is now %0.2ffps"%(self._framerate))
+            if self.update_format:
+                self.log("Updating stream format...")
+                self._format = self.newformat
+                self.image.format = self._format
+                self.update_format = False
+                time.sleep(2)
+                self.log("Stream format is now %s"%(self._format))
 
     def _grabAndPublish(self,stream):
-        while self._capturing and not self.update_framerate and not self.is_shutdown:
+        while (self._capturing and not self.update_framerate and not
+        self.update_format):
             yield stream
 
-            #with self._lock:
             stream.seek(0)
             data = stream.getvalue()
-            self._image.data = bytearray(data)
-            self._seq += 1
-            self._image.header.seq = self._seq
-            self._image.header.time = time.time()
-            self._image.header.ctime = time.clock()
+            self.frame += 1
 
-            # send the new frame to the broadcaster using AsyncSendPacket
-            # and a blank handler. We don't really care when the send finishes
-            # since we are using the "backlog" flow control in the broadcaster
-            self._imagestream_broadcaster.AsyncSendPacket(self._image,lambda: None)
-            
-            # clear stream
+            #  fill the image data
+            self.image.data = bytearray(data)
+            self.image.header.seq = self.frame
+            self.image.header.time = time.time()
+            self.image.header.ctime = time.clock()
+
+            #Publish using the pipe broadcaster
+            self._imagestream_broadcaster.AsyncSendPacket(self.image,lambda:None)
+
+            # clear the stream for the next iteration
             stream.seek(0)
             stream.truncate()
-
             time.sleep(0.001)
 
     @property
@@ -147,9 +161,7 @@ class CameraNode(RRNodeInterface):
     @ImageStream.setter
     def ImageStream(self,value):
         self._imagestream = value
-        # Create a PipeBroadcaster and only allow the most recent...
-        # Should this be a wire then?
-        self._imagestream_broadcaster=RR.PipeBroadcaster(value,1)
+        self._imagestream_broadcaster = RR.PipeBroadcaster(value,1)
 
     @property
     def framerate(self):
@@ -171,27 +183,24 @@ class CameraNode(RRNodeInterface):
             return 0
 
     def onShutdown(self):
-        self.log("Closing Camera.")
+        self.log("Closing...")
+        if self._capturing:
+            self.stopCapturing()
         self._capturing = False
-        self.is_shutdown = True
-        time.sleep(1.0)
+        time.sleep(2)
         self.camera.close()
         self.log("Shutdown.")
 
-if __name__ == '__main__':
+if __name__=='__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Initialize the Duckiebot')
     parser.add_argument('--port',type=int,default=0,
         help='TCP port to host service on' +\
-        '(will auto-generate if not specified)')
-    #parser.add_argument('--veh', required=True,
-        #help='The name of the duckiebot being launched')
+         '(will auto-generate if not specified)')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     args = parser.parse_args(sys.argv[1:])
-
-    #veh = args.veh
 
     launch_file="""\
 node_name: Duckiebot.Camera
@@ -209,3 +218,4 @@ tcp_port: %d
     launch_config = yaml.load(launch_file)
 
     LaunchRRNode(**launch_config)
+

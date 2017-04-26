@@ -1,6 +1,7 @@
 import yaml
 import socket
 import sys
+import time
 from duckie_utils.instantiate_utils import instantiate
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
@@ -129,7 +130,7 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
 
     try:
         while True:
-            pass
+            time.sleep(1)
     except (KeyboardInterrupt,SystemExit):
         for obj in launched_objects:
             obj.onShutdown()
