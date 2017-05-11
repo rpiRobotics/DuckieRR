@@ -3,6 +3,7 @@ from duckie_utils.configurable import Configurable
 from duckie_utils.instantiate_utils import instantiate
 from duckie_utils.image import DuckieImageToBGRMat
 from duckie_utils.stats import Stats
+from duckie_utils.timekeeper import TimeKeeper
 from rr_utils import *
 import cv2
 import numpy as np
@@ -29,9 +30,8 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             ]
         Configurable.__init__(self,param_names,configuration)
 
-        self._segments = []
         self.Consts = RRN.GetConstants("Duckiebot")
-        
+
         # Thread lock
         self.thread_lock = threading.Lock()
 
@@ -40,15 +40,12 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         self.stats = Stats()
 
         # only print every 10 cycles
-        self.intermittent_interval = 100
+        self.intermittent_interval = 50
         self.intermittent_counter = 0
-        
-        # Find the line detector service
-        self.ld = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
-        
-        # and connect to the new segments event
-        self.ld.newSegments += self._cbLineSeg
-        self.newSegments = RR.EventHook()
+
+
+        # create our own segments wire
+        self._segments = None
 
         # read the homography matrix from file
         h_file = "${DEFAULT_CAMEXT}"
@@ -75,6 +72,13 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             self.cam_info.P =np.array( p['data'], dtype=np.float64 ).reshape((p['rows'],p['cols']))
 
 
+        # Find the line detector service
+        self.ld = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
+
+        # and connect to the segments wire
+        self.ld_segments = self.ld.segments.Connect()
+        self.ld_segments.WireValueChanged += self._cbLineSeg
+
         '''
         # CAMERA CURRENTLY NOT NEEDED
         # Find the image service and connect to the pipe
@@ -93,6 +97,10 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
     @property
     def segments(self):
         return self._segments
+    @segments.setter
+    def segments(self, value):
+        self._segments = value
+        self._segments_wire = RR.WireBroadcaster(self._segments)
 
 
     def estimate_homography(self, image):
@@ -129,31 +137,33 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         msg = "%3d:%s"%(self.intermittent_counter, s)
         self.log(msg)
 
-    def _cbLineSeg(self, linesegs):
+    def _cbLineSeg(self, wire, value, timestamp):
         self.stats.received()
 
         if not self.active:
             return
 
-        #start a daemon thread to process the image
+        linesegs = wire.InValue
+        
+        #start a daemon thread to process the segments
         thread = threading.Thread(target=self._processSegments, args=(linesegs,))
         thread.setDaemon(True)
         thread.start()
         # this returns right away...
 
+#    def _processSegments(self,linesegs):
+#        if not self.thread_lock.acquire(False): # False indicates non-blocking
+#            self.stats.skipped()
+#            # return immediately if the thread is locked
+#            return
+#
+#        try:
+#            self.__processSegments(linesegs)
+#        finally:
+#            # release the thread lock
+#            self.thread_lock.release()
+
     def _processSegments(self,linesegs):
-        if not self.thread_lock.acquire(False): # False indicates non-blocking
-            self.stats.skipped()
-            # return immediately if the thread is locked
-            return
-
-        try:
-            self.__processSegments(linesegs)
-        finally:
-            # release the thread lock
-            self.thread_lock.release()
-
-    def __processSegments(self,linesegs):
         self.stats.processed()
 
         if self.intermittent_log_now():
@@ -161,18 +171,20 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
             self.stats.reset()
 
         self.intermittent_counter += 1
-
-        self._segments = linesegs
-        for seg in self._segments:
+        
+        #import pdb; pdb.set_trace()
+        for idx,seg in enumerate(linesegs):
             seg.points = []
 
             assert(len(seg.pixels_normalized) == 2)
-            
+
             point1 = self.image2ground(seg.pixels_normalized[0])
             point2 = self.image2ground(seg.pixels_normalized[1])
             seg.points.extend([point1, point2])
 
-        self.newSegments.fire(self._segments)
+            linesegs[idx] = seg
+
+        self._segments_wire.OutValue = linesegs
 
     def image2ground(self, pix):
         try: 
@@ -286,6 +298,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         return vector
 
     def onShutdown(self):
+        self.ld_segments.Close()
         self.log("Shutdown.")
 
 
@@ -304,17 +317,17 @@ if __name__ == '__main__':
         config_file = '${DEFAULT_GP_PARAMS}'
 
     launch_file = """\
-node_name: Duckiebot.LineDetector
+node_name: Duckiebot.GroundProjection
 
 objects:
     - name: Duckiebot
       robdef: ${DUCKIEBOT_ROBDEF}
-    - name: LineDetector
+    - name: GroundProjection
       robdef: ${GROUNDPROJECTION_ROBDEF}
-      class: LineDetectorNode.LineDetectorNode
+      class: GroundProjectionNode.GroundProjectionNode
       configuration: %s 
 
     """%(config_file)
-    
+   
     launch_config = yaml.load(launch_file)
     LaunchRRNode(**launch_config)

@@ -70,16 +70,18 @@ class CameraNode : public Camera::Camera, public boost::enable_shared_from_this<
 		bool _is_shutdown;
 
 		RR_SHARED_PTR<Image > _image;
+		uint _seq;
 
 		RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > _imagestream;
-		map<uint32_t, map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > > > _imagestream_endpoints;
+		RR_SHARED_PTR<RobotRaconteur::PipeBroadcaster<RR_SHARED_PTR<Image> > > _imagestream_broadcaster;
+		//map<uint32_t, map<int32_t, boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > > > _imagestream_endpoints;
 
 		bool _capturing;
 
 		// helper functions
 		void _capture_threadfunc();
-		void _imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep);
-		void _imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep);
+		//void _imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep);
+		//void _imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep);
 
 };
 

@@ -1,6 +1,7 @@
 import yaml
 import socket
 import sys
+import time
 from duckie_utils.instantiate_utils import instantiate
 import RobotRaconteur as RR
 RRN = RR.RobotRaconteurNode.s
@@ -72,6 +73,7 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
         defined_objects = []
         lines = service_def.splitlines()
         for line in lines:
+            line=line.strip()
             if line == '':
                 continue
             if line[0] == '#': # comment character
@@ -128,11 +130,10 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
 
     try:
         while True:
-            pass
+            time.sleep(1)
     except (KeyboardInterrupt,SystemExit):
         for obj in launched_objects:
             obj.onShutdown()
         
         # This must be here to prevent segfault
         RRN.Shutdown()
-        sys.exit(0)

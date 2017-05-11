@@ -6,12 +6,10 @@ option version 0.8
 import Duckiebot
 
 object GroundProjection
-    property Duckiebot.Segment{list} segments
-
     function double[] estimate_homography(Duckiebot.Image im)
     function Duckiebot.Point ground_coordinate(Duckiebot.Pixel uv, Duckiebot.Vector2D normalized_uv)
     function Duckiebot.Vector2D image_coordinate(Duckiebot.Point gp)
 
-    # likely want some way of clients only checking when new segments found.
-    event newSegments(Duckiebot.Segment{list} segs)
+    wire Duckiebot.Segment{list} segments
+    
 end object

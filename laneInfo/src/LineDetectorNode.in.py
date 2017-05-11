@@ -3,7 +3,9 @@ from duckie_utils.configurable import Configurable
 from duckie_utils.instantiate_utils import instantiate
 from duckie_utils.image import DuckieImageToBGRMat
 from duckie_utils.stats import Stats
+from duckie_utils.timekeeper import TimeKeeper
 from rr_utils import (RRNodeInterface, LaunchRRNode, FormatRobdefString)
+from line_detector.line_detector_plot import *
 import cv2
 import numpy as np
 import threading
@@ -27,8 +29,17 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             ]
         Configurable.__init__(self,param_names,configuration)
 
-        self._segments = []
-        self.RRConsts = RRN.GetConstants("Duckiebot")
+
+        self._segments = None
+        self._verbose = False
+        self._verboseImage = None
+
+        self._pub_im = RRN.NewStructure("Duckiebot.Image")
+        self._pub_im.height = self.img_size[0] - self.top_cutoff
+        self._pub_im.width = self.img_size[1]
+        self._pub_im.format = 'bgr'
+
+        self.DuckieConsts = RRN.GetConstants("Duckiebot")
         
         # Thread lock
         self.thread_lock = threading.Lock()
@@ -55,6 +66,10 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         # Find and connect to the image service
         self.duckie_cam = self.FindAndConnect("Duckiebot.Camera.Camera")
         
+        try:
+            self.duckie_cam.changeFormat('jpeg')
+        except: pass
+
         # connect to the pipe
         self.imstream = self.duckie_cam.ImageStream.Connect(-1) # connect to the pipe
         self.imstream.PacketReceivedEvent+=self._cbImage
@@ -63,11 +78,27 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             self.duckie_cam.startCapturing()
         except: pass
 
-        self.newSegments = RR.EventHook()
+    def toggleVerbose(self):
+        self._verbose = (not self._verbose)
+
+    @property 
+    def verboseImage(self):
+        return self._verboseImage
+    
+    @verboseImage.setter
+    def verboseImage(self,value):
+        self._verboseImage = value
+        self._verboseImagestream = RR.PipeBroadcaster(self._verboseImage,1)
+
     
     @property
     def segments(self):
         return self._segments
+
+    @segments.setter
+    def segments(self,value):
+        self._segments = value
+        self._segments_wire = RR.WireBroadcaster(self._segments)
 
     def intermittent_log_now(self):
         return self.intermittent_counter % self.intermittent_interval == 1
@@ -79,9 +110,8 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         self.log(msg)
 
     def _cbImage(self, pipe_ep):
-        while (pipe_ep.Available > 0):
-            self.stats.received()
-            image=pipe_ep.ReceivePacket()
+        self.stats.received()
+        image=pipe_ep.ReceivePacket()
 
         if not self.active:
             return
@@ -111,6 +141,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             self.intermittent_log(self.stats.info())
             self.stats.reset()
 
+        tk = TimeKeeper(image.header)
         self.intermittent_counter += 1
 
         # extract the image data
@@ -120,6 +151,8 @@ class LineDetectorNode(Configurable,RRNodeInterface):
             self.log("Could not decode image: %s"%(e))
             return
 
+        tk.completed('decode')
+
         # resize and crop image
         h_original, w_original = image_cv.shape[0:2]
 
@@ -128,6 +161,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
                 interpolation=cv2.INTER_NEAREST)
             image_cv = image_cv[self.top_cutoff:,:,:]
 
+        tk.completed('resized')
         # apply color correction ... 
         # ADD IN LATER IF NEEDED
 
@@ -139,54 +173,74 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         yellow = self.detector.detectLines('yellow')
         red = self.detector.detectLines('red')
 
-        # Reset the segments list
-        self._segments = []
+        tk.completed('detected')
 
+        # Reset the segments list
+        segmentList = []
         # convert to normalized pixel coordinates, and add segments to segment list
         arr_cutoff = np.array((0, self.top_cutoff, 0, self.top_cutoff))
         arr_ratio = np.array((1./self.img_size[1], 1./self.img_size[0], 1./self.img_size[1], 1./self.img_size[0] ))
         
         if len(white.lines) > 0:
             lines_normalized_white = ((white.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_white, white.normals, self.RRConsts.WHITE))
+            segmentList.extend(self.toSegment(lines_normalized_white, white.normals, self.DuckieConsts.WHITE))
         
         if len(yellow.lines) > 0:
             lines_normalized_yellow = ((yellow.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.RRConsts.YELLOW))
+            segmentList.extend(self.toSegment(lines_normalized_yellow, yellow.normals, self.DuckieConsts.YELLOW))
         
         if len(red.lines) > 0:
             lines_normalized_red = ((red.lines + arr_cutoff) * arr_ratio)
-            self._segments.extend(self.toSegment(lines_normalized_red, red.normals, self.RRConsts.RED))
+            segmentList.extend(self.toSegment(lines_normalized_red, red.normals, self.DuckieConsts.RED))
 
-        self.newSegments.fire(self._segments)
         self.intermittent_log('# segments: white %3d yellow %3d red %3d' % (len(white.lines),
                 len(yellow.lines), len(red.lines)))
 
+        tk.completed('prepared')
+
+        #Publish
+        self._segments_wire.OutValue = segmentList
+        tk.completed('--pub_lines--')
+
+        # VISUALIZATION
+        if self._verbose:
+
+            # Draw lines and normals
+            image_with_lines = np.copy(image_cv)
+            drawLines(image_with_lines, white.lines, (0,0,0))
+            drawLines(image_with_lines, yellow.lines, (255,0,0))
+            drawLines(image_with_lines, red.lines, (0,255,0))
+
+            tk.completed('drawn')
+
+            # publish the image with lines
+            self._pub_im.data = np.reshape(image_with_lines,
+                                                 image_with_lines.size)
+            self._verboseImagestream.AsyncSendPacket(self._pub_im, lambda:None)
+            tk.completed('pub_image')
+
+        self.intermittent_log(tk.getall())
 
     def toSegment(self, lines, normals, color):
         segmentList = []
+        segment = RRN.NewStructure("Duckiebot.Segment")
+        segment.pixels_normalized = [RRN.NewStructure("Duckiebot.Vector2D"),
+                                     RRN.NewStructure("Duckiebot.Vector2D")]
+        segment.normal = RRN.NewStructure("Duckiebot.Vector2D")
         for x1,y1,x2,y2,norm_x,norm_y in np.hstack((lines,normals)):
-            segment = RRN.NewStructure("Duckiebot.Segment")
-            segment.pixels_normalized = []
             segment.color = color
-
-            vec = RRN.NewStructure("Duckiebot.Vector2D")
-            vec.x = x1
-            vec.y = y1
-            segment.pixels_normalized.append(vec)
-            
-            vec.x = x2
-            vec.y = y2
-            segment.pixels_normalized.append(vec)
-            
-            vec.x = norm_x
-            vec.y = norm_y
-            segment.normal = vec
+            segment.pixels_normalized[0].x = x1
+            segment.pixels_normalized[0].y = y1
+            segment.pixels_normalized[1].x = x2
+            segment.pixels_normalized[1].y = y2
+            segment.normal.x = norm_x
+            segment.normal.y = norm_y
 
             segmentList.append(segment)
         return segmentList
 
     def onShutdown(self):
+        self.log("Stopping...")
         self.imstream.Close()
         self.log("Shutdown.")
 
@@ -197,6 +251,9 @@ if __name__ == '__main__':
         description='Initialize the line detector')
     parser.add_argument('--config', type=open,
         help='A config file for the line detector (Otherwise use Default)')
+    parser.add_argument('--port',type=int,default=0,
+        help='TCP port to host service on' +\
+        '(will auto-generate if not specified)')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     args = parser.parse_args(sys.argv[1:])
@@ -217,7 +274,8 @@ objects:
       class: LineDetectorNode.LineDetectorNode
       configuration: %s 
 
-    """%(config_file)
+tcp_port: %d 
+    """%(config_file,args.port)
     
     launch_config = yaml.load(launch_file)
     LaunchRRNode(**launch_config)

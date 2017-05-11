@@ -9,7 +9,14 @@ option constant uint8 WHITE 0
 option constant uint8 YELLOW 1
 option constant uint8 RED 2
 
+struct Header
+    field uint32 seq
+    field double time
+    field double ctime
+end struct
+
 struct Image
+    field Header header
     field string format
     field int32 width
     field int32 height

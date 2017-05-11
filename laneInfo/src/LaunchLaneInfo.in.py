@@ -51,7 +51,7 @@ objects:
 
     - name: LaneInfo
       robdef: ${LANEINFO_ROBDEF}
-      class: LaneInfoNode.LaneInfoNode
+      class: LaneFilterNode.LaneFilterNode
       configuration: %s 
 
 tcp_port: %d

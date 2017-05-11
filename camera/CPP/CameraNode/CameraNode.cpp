@@ -20,10 +20,16 @@ CameraNode::CameraNode(void){
 
     _is_shutdown = false;
 
+    _seq = 0;
+
     _image = boost::make_shared<Image>();
     _image->format = _format;
     _image->width = _res_w;
     _image->height = _res_h;
+    _image->header = boost::make_shared<Header>();
+    _image->header->seq = _seq;
+    _image->header->time =0.0;
+    _image->header->ctime = 0.0;
 
     if ( !camera->open()) throw std::runtime_error("Error opening the camera");
     _capturing = false;
@@ -34,10 +40,13 @@ CameraNode::CameraNode(void){
 }
 
 void CameraNode::Shutdown(void){
-	// release the camera
-	camera->release();
 	_is_shutdown = true;
 	_capturing = false;
+	boost::this_thread::sleep(boost::posix_time::seconds(1) );
+	
+	// release the camera
+	camera->release();
+	
 	cout << "[" << _nodeName << "] Shutdown."<<endl;
 
 }
@@ -88,6 +97,16 @@ RR_SHARED_PTR<Image > CameraNode::captureImage(){
 	// capture a frame
 	camera->grab();
 
+	// increment seq
+	_seq++;
+
+	//get time info
+	double time = boost::chrono::duration<double>(boost::chrono::system_clock::now().time_since_epoch()).count();
+
+	// Fill out the header info
+	_image->header->seq = _seq;
+	_image->header->time = time; 
+	//_image->header->ctime = 0.0; // We just won't use ctime...
 	// Extract and copy over the data
 	_image->data = AttachRRArrayCopy((uint8_t*)camera->getImageBufferData(), camera->getImageBufferSize());
 
@@ -138,11 +157,24 @@ RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > CameraNode::get_Ima
 	return _imagestream;
 }
 void CameraNode::set_ImageStream(RR_SHARED_PTR<RobotRaconteur::Pipe<RR_SHARED_PTR<Image > > > value){
+	recursive_mutex::scoped_lock lock(global_lock);
 	_imagestream  = value;
-	_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
+
+	//Use the PipeBroadcaster to send frames, and specify a backlog of 1
+	// Should this be a Wire then?
+	_imagestream_broadcaster = boost::make_shared<PipeBroadcaster<RR_SHARED_PTR<Image > > >();
+	_imagestream_broadcaster->Init(_imagestream, 1);
+	
+	//_imagestream->SetPipeConnectCallback(boost::bind(&CameraNode::_imagestream_pipeconnect,shared_from_this(), _1));
 	// _1 is a placeholder that tells boost _imagestream_pipeconnect expects 1 additional arguement
 }
 
+void async_frame_send_handler()
+{
+
+}
+
+/*
 void CameraNode::_imagestream_pipeconnect(boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > pipe_ep){
 	recursive_mutex::scoped_lock lock(global_lock);
 
@@ -166,7 +198,7 @@ void CameraNode::_imagestream_pipeclosed(boost::shared_ptr<PipeEndpoint<boost::s
 	catch(...){}
 }
 
-
+*/
 /********************************
  *		Private Functions
  ********************************/
@@ -184,8 +216,19 @@ void CameraNode::_capture_threadfunc(){
 		// Capture a frame
 		boost::shared_ptr<Image> frame = captureImage();
 
-		recursive_mutex::scoped_lock lock(global_lock);
-
+		try
+		{
+			recursive_mutex::scoped_lock lock(global_lock);
+			_imagestream_broadcaster->AsyncSendPacket(frame, async_frame_send_handler);
+		}
+		catch(std::exception&)
+		{
+			if(_capturing)
+			{
+				cout << "warning: error sending frame" << endl;
+			}
+		}
+		/*
 		// determine all connected endpoints
 		vector<uint32_t> endpoints;
 		for (map<uint32_t, map<int32_t,boost::shared_ptr<PipeEndpoint<boost::shared_ptr<Image> > > > >::iterator e=_imagestream_endpoints.begin(); e!=_imagestream_endpoints.end(); ++e){
@@ -224,7 +267,7 @@ void CameraNode::_capture_threadfunc(){
 				}
 			}
 		}
-
+		*/
 		boost::this_thread::sleep_until(time_limit);
 	}
 }
