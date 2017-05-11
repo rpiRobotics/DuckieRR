@@ -40,7 +40,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         self.stats = Stats()
 
         # only print every 10 cycles
-        self.intermittent_interval = 10
+        self.intermittent_interval = 50
         self.intermittent_counter = 0
 
 
@@ -76,8 +76,8 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         self.ld = self.FindAndConnect("Duckiebot.LineDetector.LineDetector")
 
         # and connect to the segments wire
-        ld_segments = self.ld.segments.Connect()
-        ld_segments.WireValueChanged += self._cbLineSeg
+        self.ld_segments = self.ld.segments.Connect()
+        self.ld_segments.WireValueChanged += self._cbLineSeg
 
         '''
         # CAMERA CURRENTLY NOT NEEDED
@@ -298,6 +298,7 @@ class GroundProjectionNode(Configurable,RRNodeInterface):
         return vector
 
     def onShutdown(self):
+        self.ld_segments.Close()
         self.log("Shutdown.")
 
 

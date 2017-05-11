@@ -97,7 +97,11 @@ class LaneFilterNode(Configurable,RRNodeInterface):
             'l_max',
             'use_propagation',
             'sigma_d_mask',
-            'sigma_phi_mask'
+            'sigma_phi_mask',
+
+            'img_size',
+            'top_cutoff',
+            'detector'
             ]
 
         Configurable.__init__(self,param_names,configuration)
@@ -116,11 +120,12 @@ class LaneFilterNode(Configurable,RRNodeInterface):
 
     @property
     def verboseImage(self):
-        raise RuntimeError('Verbose Image is not Implemented by LaneFilterNode')
+        return self._verboseImage
 
     @verboseImage.setter
     def verboseImage(self,value):
-        raise RuntimeError('Verbose Image is not Implemented by LaneFilterNode')
+        self._verboseImage = value
+        self._verboseImagestream = RR.PipeBroadcaster(self._verboseImage,1)
 
     @property
     def lanePose(self):

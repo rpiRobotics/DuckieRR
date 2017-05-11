@@ -137,4 +137,3 @@ def LaunchRRNode(node_name, objects, tcp_port=None):
         
         # This must be here to prevent segfault
         RRN.Shutdown()
-        sys.exit(0)

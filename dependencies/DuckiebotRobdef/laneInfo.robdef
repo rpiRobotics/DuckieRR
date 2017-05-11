@@ -18,6 +18,6 @@ end struct
 object LaneInfo
     property LanePose lanePose
 
-    function toggleVerbose
+    function void toggleVerbose()
     pipe Duckiebot.Image verboseImage
 end object

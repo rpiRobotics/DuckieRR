@@ -240,6 +240,7 @@ class LineDetectorNode(Configurable,RRNodeInterface):
         return segmentList
 
     def onShutdown(self):
+        self.log("Stopping...")
         self.imstream.Close()
         self.log("Shutdown.")
 
